@@ -1,0 +1,10 @@
+{
+  "name": "greenfarm-wordpress",
+  "private": true,
+  "scripts": {
+    "test": "cd wp-content/themes/greenfarm && wp-playground-cli php --auto-mount -- /wordpress/wp-content/themes/greenfarm/tests/run.php"
+  },
+  "devDependencies": {
+    "@wp-playground/cli": "3.1.55"
+  }
+}
