@@ -13,7 +13,9 @@ get_header();
         the_post();
         get_template_part('template-parts/home/hero');
         get_template_part('template-parts/home/introduction');
+        get_template_part('template-parts/home/products');
         get_template_part('template-parts/home/values-process');
+        get_template_part('template-parts/home/stories');
         get_template_part('template-parts/home/proof');
     }
     ?>

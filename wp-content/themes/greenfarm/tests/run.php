@@ -526,5 +526,85 @@ greenfarm_test(
     }
 );
 
+greenfarm_test(
+    'front page omits optional business sections when their models do not exist',
+    static function (): void {
+        $page_id = wp_insert_post(array('post_type' => 'page', 'post_title' => 'Model-free Home', 'post_status' => 'publish'));
+        $html    = greenfarm_render_template('front-page.php', greenfarm_front_page_query($page_id));
+
+        greenfarm_expect(! preg_match('/<h2[^>]*>\s*Product categories\s*<\/h2>/i', $html), 'missing taxonomy must not leave a Product categories heading');
+        greenfarm_expect(! preg_match('/<h2[^>]*>\s*Featured products\s*<\/h2>/i', $html), 'missing Product model must not leave a Featured products heading');
+        greenfarm_expect(! preg_match('/<h2[^>]*>\s*Farm stories\s*<\/h2>/i', $html), 'missing Farm Story model must not leave a Farm stories heading');
+    }
+);
+
+greenfarm_test(
+    'front page renders bounded published products, categories, and farm stories',
+    static function (): void {
+        register_post_type('greenfarm_product', array('public' => true, 'label' => 'Products', 'supports' => array('title', 'editor', 'excerpt', 'thumbnail')));
+        register_post_type('farm_story', array('public' => true, 'label' => 'Farm Stories', 'supports' => array('title', 'editor', 'excerpt', 'thumbnail')));
+        register_taxonomy('product_category', 'greenfarm_product', array('public' => true, 'label' => 'Product Categories'));
+
+        $product_ids = array();
+        $term_ids    = array();
+        for ($index = 1; $index <= 5; ++$index) {
+            $term = wp_insert_term(sprintf('Homepage Category %d', $index), 'product_category');
+            $term_ids[] = is_wp_error($term) ? (int) $term->get_error_data('term_exists') : (int) $term['term_id'];
+            $product_ids[] = wp_insert_post(
+                array(
+                    'post_type'    => 'greenfarm_product',
+                    'post_title'   => sprintf('Homepage Product %d', $index),
+                    'post_excerpt' => sprintf('Product %d from this season.', $index),
+                    'post_status'  => 'publish',
+                    'post_date'    => sprintf('2026-09-%02d 08:00:00', 10 + $index),
+                )
+            );
+            wp_set_object_terms($product_ids[$index - 1], array($term_ids[$index - 1]), 'product_category');
+        }
+        update_post_meta($product_ids[4], 'availability', 'Available now');
+        $draft_product = wp_insert_post(array('post_type' => 'greenfarm_product', 'post_title' => 'Homepage Draft Product', 'post_status' => 'draft'));
+
+        $story_ids = array();
+        for ($index = 1; $index <= 3; ++$index) {
+            $story_ids[] = wp_insert_post(
+                array(
+                    'post_type'    => 'farm_story',
+                    'post_title'   => sprintf('Homepage Story %d', $index),
+                    'post_excerpt' => sprintf('Story %d from the field.', $index),
+                    'post_status'  => 'publish',
+                    'post_date'    => sprintf('2026-09-%02d 09:00:00', 20 + $index),
+                )
+            );
+        }
+        $draft_story = wp_insert_post(array('post_type' => 'farm_story', 'post_title' => 'Homepage Draft Story', 'post_status' => 'draft'));
+
+        $page_id               = wp_insert_post(array('post_type' => 'page', 'post_title' => 'Business Home', 'post_status' => 'publish'));
+        $post_before_proof     = 0;
+        $capture_page_context  = static function () use (&$post_before_proof): void {
+            $post_before_proof = get_the_ID();
+        };
+        add_action('get_template_part_template-parts/home/proof', $capture_page_context);
+        $html = greenfarm_render_template('front-page.php', greenfarm_front_page_query($page_id));
+        remove_action('get_template_part_template-parts/home/proof', $capture_page_context);
+
+        greenfarm_expect(4 === substr_count($html, 'class="home-category-card"'), 'homepage must limit Product categories to four');
+        greenfarm_expect(4 === substr_count($html, 'class="home-product-card"'), 'homepage must limit Products to four');
+        greenfarm_expect(2 === substr_count($html, 'class="home-story-card"'), 'homepage must limit Farm Stories to two');
+        greenfarm_expect(! str_contains($html, 'Homepage Product 1'), 'oldest Product must be outside the four-card limit');
+        greenfarm_expect(! str_contains($html, 'Homepage Draft Product'), 'draft Product must not render');
+        greenfarm_expect(! str_contains($html, 'Homepage Story 1'), 'oldest Farm Story must be outside the two-card limit');
+        greenfarm_expect(! str_contains($html, 'Homepage Draft Story'), 'draft Farm Story must not render');
+        greenfarm_expect(str_contains($html, get_permalink($product_ids[4])), 'Product canonical permalink is missing');
+        greenfarm_expect(str_contains($html, get_permalink($story_ids[2])), 'Farm Story canonical permalink is missing');
+        greenfarm_expect(str_contains($html, (string) get_term_link($term_ids[0], 'product_category')), 'Product category canonical link is missing');
+        greenfarm_expect(str_contains($html, 'Available now'), 'Product availability metadata is missing');
+        greenfarm_expect(1 === substr_count($html, '<h1'), 'optional sections must preserve the single Page H1');
+        greenfarm_expect($page_id === $post_before_proof, 'secondary queries must restore the homepage Page context');
+
+        wp_delete_post($draft_product, true);
+        wp_delete_post($draft_story, true);
+    }
+);
+
 echo "\n{$greenfarm_tests} tests, {$greenfarm_failures} failures\n";
 exit($greenfarm_failures > 0 ? 1 : 0);
