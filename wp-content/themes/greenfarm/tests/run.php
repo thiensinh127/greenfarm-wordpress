@@ -86,6 +86,22 @@ function greenfarm_render_template(string $template, WP_Query $query): string
 }
 
 /**
+ * Build the static Page query used by front-page template tests.
+ */
+function greenfarm_front_page_query(int $page_id): WP_Query
+{
+    $query                    = new WP_Query(array('page_id' => $page_id));
+    $query->is_page           = true;
+    $query->is_singular       = true;
+    $query->is_home           = false;
+    $query->is_front_page     = true;
+    $query->queried_object    = get_post($page_id);
+    $query->queried_object_id = $page_id;
+
+    return $query;
+}
+
+/**
  * Capture WordPress robots output for a specific query context.
  */
 function greenfarm_render_robots(WP_Query $query): string
@@ -406,6 +422,85 @@ greenfarm_test(
 
         greenfarm_expect(str_contains($html, 'soil &amp; water'), 'search query is not safely escaped');
         greenfarm_expect(! str_contains($html, 'soil &amp;amp; water'), 'search query is double-escaped');
+    }
+);
+
+greenfarm_test(
+    'front page uses native Page content for a coherent hero and introduction',
+    static function (): void {
+        $page_id = wp_insert_post(
+            array(
+                'post_type'    => 'page',
+                'post_title'   => 'Food grown with care',
+                'post_excerpt' => 'Seasonal produce from healthy soil.',
+                'post_content' => '<p>Meet the people and practices behind every harvest.</p>',
+                'post_status'  => 'publish',
+            )
+        );
+        $html = greenfarm_render_template('front-page.php', greenfarm_front_page_query($page_id));
+
+        greenfarm_expect(1 === substr_count($html, '<h1'), 'front page must render exactly one H1');
+        greenfarm_expect(str_contains($html, 'Food grown with care'), 'Page title is missing from the hero');
+        greenfarm_expect(str_contains($html, 'Seasonal produce from healthy soil.'), 'Page excerpt is missing from the hero');
+        greenfarm_expect(str_contains($html, 'Meet the people and practices behind every harvest.'), 'Page content is missing from the introduction');
+        greenfarm_expect(str_contains($html, home_url('/products/')), 'Products CTA is missing');
+        greenfarm_expect(str_contains($html, home_url('/about/')), 'About CTA is missing');
+        greenfarm_expect(! preg_match('/<img[^>]+src=(?:""|\'\')/i', $html), 'front page must not output an image with an empty source');
+    }
+);
+
+greenfarm_test(
+    'front page hero uses responsive high-priority attachment markup',
+    static function (): void {
+        $page_id = wp_insert_post(
+            array(
+                'post_type'   => 'page',
+                'post_title'  => 'GreenFarm harvest',
+                'post_status' => 'publish',
+            )
+        );
+        $attachment_id = wp_insert_attachment(
+            array(
+                'post_title'     => 'Green fields at harvest',
+                'post_mime_type' => 'image/jpeg',
+                'post_status'    => 'inherit',
+                'guid'           => home_url('/wp-content/uploads/2026/09/greenfarm-hero.jpg'),
+            ),
+            '2026/09/greenfarm-hero.jpg',
+            $page_id
+        );
+        update_post_meta($attachment_id, '_wp_attached_file', '2026/09/greenfarm-hero.jpg');
+        wp_update_attachment_metadata(
+            $attachment_id,
+            array(
+                'width'  => 1600,
+                'height' => 900,
+                'file'   => '2026/09/greenfarm-hero.jpg',
+                'sizes'  => array(
+                    'medium' => array(
+                        'file'      => 'greenfarm-hero-300x169.jpg',
+                        'width'     => 300,
+                        'height'    => 169,
+                        'mime-type' => 'image/jpeg',
+                    ),
+                    'large' => array(
+                        'file'      => 'greenfarm-hero-1024x576.jpg',
+                        'width'     => 1024,
+                        'height'    => 576,
+                        'mime-type' => 'image/jpeg',
+                    ),
+                ),
+            )
+        );
+        set_post_thumbnail($page_id, $attachment_id);
+
+        $html = greenfarm_render_template('front-page.php', greenfarm_front_page_query($page_id));
+
+        greenfarm_expect(str_contains($html, 'fetchpriority="high"'), 'hero image must receive high fetch priority');
+        greenfarm_expect(str_contains($html, 'loading="eager"'), 'hero image must load eagerly');
+        greenfarm_expect((bool) preg_match('/<img[^>]+width="1600"[^>]+height="900"/i', $html), 'hero image intrinsic dimensions are missing');
+        greenfarm_expect(str_contains($html, 'srcset='), 'hero image responsive srcset is missing');
+        greenfarm_expect(str_contains($html, 'sizes='), 'hero image responsive sizes are missing');
     }
 );
 
