@@ -47,3 +47,13 @@ function greenfarm_enqueue_assets(): void
 }
 add_action('wp_enqueue_scripts', 'greenfarm_enqueue_assets');
 
+/**
+ * Return the configured Posts page URL with a stable fallback.
+ */
+function greenfarm_get_blog_url(): string
+{
+    $posts_page_id = (int) get_option('page_for_posts');
+
+    return $posts_page_id > 0 ? (string) get_permalink($posts_page_id) : home_url('/blog/');
+}
+
