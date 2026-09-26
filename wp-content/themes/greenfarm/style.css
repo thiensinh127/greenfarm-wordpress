@@ -1,0 +1,89 @@
+/*
+Theme Name: GreenFarm
+Theme URI: https://example.com/greenfarm
+Author: GreenFarm
+Description: A fast, accessible editorial theme for the GreenFarm website.
+Version: 1.0.0
+Requires at least: 6.6
+Requires PHP: 8.2
+Text Domain: greenfarm
+*/
+
+:root {
+    --gf-forest: #052e20;
+    --gf-forest-soft: #0d452f;
+    --gf-leaf: #a8d644;
+    --gf-cream: #f5f3e8;
+    --gf-paper: #fffdf6;
+    --gf-ink: #13251d;
+    --gf-muted: #65756d;
+    --gf-border: rgba(19, 37, 29, 0.14);
+    --gf-radius: 1.25rem;
+    --gf-shadow: 0 1.25rem 3rem rgba(5, 46, 32, 0.12);
+    --gf-container: 75rem;
+    --gf-reading: 45rem;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    background: var(--gf-cream);
+    color: var(--gf-ink);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    line-height: 1.65;
+}
+
+img {
+    display: block;
+    height: auto;
+    max-width: 100%;
+}
+
+a {
+    color: inherit;
+}
+
+:focus-visible {
+    outline: 3px solid var(--gf-leaf);
+    outline-offset: 4px;
+}
+
+.screen-reader-text {
+    clip: rect(1px, 1px, 1px, 1px);
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    position: absolute;
+    width: 1px;
+    word-wrap: normal !important;
+}
+
+.screen-reader-text:focus {
+    clip: auto !important;
+    clip-path: none;
+    background: var(--gf-paper);
+    color: var(--gf-ink);
+    display: block;
+    height: auto;
+    left: 1rem;
+    padding: 0.75rem 1rem;
+    top: 1rem;
+    width: auto;
+    z-index: 100000;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+}
+
