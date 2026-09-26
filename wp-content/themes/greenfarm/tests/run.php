@@ -504,5 +504,27 @@ greenfarm_test(
     }
 );
 
+greenfarm_test(
+    'front page presents values, an ordered farm process, and factual proof',
+    static function (): void {
+        $page_id = wp_insert_post(
+            array(
+                'post_type'   => 'page',
+                'post_title'  => 'GreenFarm',
+                'post_status' => 'publish',
+            )
+        );
+        $html = greenfarm_render_template('front-page.php', greenfarm_front_page_query($page_id));
+
+        greenfarm_expect(3 === substr_count($html, 'home-value-card'), 'homepage must render exactly three value cards');
+        greenfarm_expect((bool) preg_match('/<ol[^>]*>.*Grow.*Harvest.*Prepare.*Share.*<\/ol>/s', $html), 'farm process must be an ordered Grow, Harvest, Prepare, Share sequence');
+        greenfarm_expect(str_contains($html, 'Seasonal harvests'), 'factual seasonal proof is missing');
+        greenfarm_expect(str_contains($html, 'Clear growing information'), 'factual growing-information proof is missing');
+        greenfarm_expect(str_contains($html, 'Practical farm education'), 'factual education proof is missing');
+        greenfarm_expect(! str_contains($html, '"@type":"Review"'), 'homepage must not emit unverified Review schema');
+        greenfarm_expect(1 === substr_count($html, '<h1'), 'values and process sections must not add another H1');
+    }
+);
+
 echo "\n{$greenfarm_tests} tests, {$greenfarm_failures} failures\n";
 exit($greenfarm_failures > 0 ? 1 : 0);
