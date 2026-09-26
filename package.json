@@ -2,7 +2,9 @@
   "name": "greenfarm-wordpress",
   "private": true,
   "scripts": {
-    "test": "wp-playground-cli php --mount=./wp-content/themes/greenfarm:/wordpress/wp-content/themes/greenfarm -- /wordpress/wp-content/themes/greenfarm/tests/run.php"
+    "test": "npm run test:php && npm run test:js",
+    "test:php": "wp-playground-cli php --mount=./wp-content/themes/greenfarm:/wordpress/wp-content/themes/greenfarm -- /wordpress/wp-content/themes/greenfarm/tests/run.php",
+    "test:js": "node --test wp-content/themes/greenfarm/tests/*.test.js"
   },
   "devDependencies": {
     "@wp-playground/cli": "3.1.55"

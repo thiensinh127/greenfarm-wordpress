@@ -47,17 +47,47 @@ function greenfarm_enqueue_assets(): void
         $version
     );
 
-    if (is_single()) {
+    if (greenfarm_is_blog_view()) {
+        wp_enqueue_style(
+            'greenfarm-blog',
+            get_template_directory_uri() . '/assets/css/blog.css',
+            array('greenfarm-style'),
+            $version
+        );
+        wp_enqueue_script(
+            'greenfarm-motion',
+            get_template_directory_uri() . '/assets/js/motion.js',
+            array(),
+            $version,
+            array(
+                'strategy'  => 'defer',
+                'in_footer' => true,
+            )
+        );
+    }
+
+    if (is_singular('post')) {
         wp_enqueue_script(
             'greenfarm-share',
             get_template_directory_uri() . '/assets/js/share.js',
             array(),
             $version,
-            true
+            array(
+                'strategy'  => 'defer',
+                'in_footer' => true,
+            )
         );
     }
 }
 add_action('wp_enqueue_scripts', 'greenfarm_enqueue_assets');
+
+/**
+ * Determine whether the current request uses the editorial blog system.
+ */
+function greenfarm_is_blog_view(): bool
+{
+    return is_home() || is_category() || is_tag() || is_search() || is_singular('post');
+}
 
 /**
  * Return the configured Posts page URL with a stable fallback.
