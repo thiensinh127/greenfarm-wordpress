@@ -29,7 +29,7 @@ $greenfarm_share_title = wp_strip_all_tags(get_the_title());
             </a>
         </li>
     </ul>
-    <button class="social-share__native" type="button" data-share-button data-url="<?php echo esc_url($greenfarm_share_url); ?>" data-title="<?php echo esc_attr($greenfarm_share_title); ?>">
+    <button class="social-share__native" type="button" data-share-button data-url="<?php echo esc_url($greenfarm_share_url); ?>" data-title="<?php echo esc_attr($greenfarm_share_title); ?>" hidden>
         <?php esc_html_e('Share or copy link', 'greenfarm'); ?>
     </button>
     <p class="social-share__status" data-share-status aria-live="polite"></p>

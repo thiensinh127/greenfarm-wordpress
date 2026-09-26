@@ -107,6 +107,38 @@ function greenfarm_render_robots(WP_Query $query): string
     return $robots;
 }
 
+/**
+ * Render related posts for a real current Post.
+ */
+function greenfarm_render_related_posts(int $post_id): string
+{
+    global $post, $wp_query, $wp_the_query;
+
+    $previous_post     = $post ?? null;
+    $previous_query    = $wp_query;
+    $previous_wp_query = $wp_the_query;
+    $query             = new WP_Query(array('p' => $post_id));
+    $query->is_single  = true;
+    $query->is_singular = true;
+    $wp_query          = $query;
+    $wp_the_query      = $query;
+    $query->the_post();
+
+    ob_start();
+    $path = dirname(__DIR__) . '/template-parts/related-posts.php';
+    if (file_exists($path)) {
+        require $path;
+    }
+    $html = (string) ob_get_clean();
+
+    $post         = $previous_post;
+    $wp_query     = $previous_query;
+    $wp_the_query = $previous_wp_query;
+    wp_reset_postdata();
+
+    return $html;
+}
+
 greenfarm_test(
     'blog archive card links the post title and has one page heading',
     static function (): void {
@@ -258,6 +290,52 @@ greenfarm_test(
         $html                = greenfarm_render_template('single.php', $query);
 
         greenfarm_expect(str_contains($html, 'article-meta__updated'), 'materially revised post must show updated date');
+    }
+);
+
+greenfarm_test(
+    'related posts exclude the current post and require a shared category',
+    static function (): void {
+        $term = wp_insert_term('Soil Health', 'category');
+        $category_id = is_wp_error($term) ? (int) $term->get_error_data('term_exists') : (int) $term['term_id'];
+        $current_id = wp_insert_post(array('post_title' => 'Healthy Soil Guide', 'post_status' => 'publish', 'post_category' => array($category_id)));
+        $related_id = wp_insert_post(array('post_title' => 'Compost Basics', 'post_status' => 'publish', 'post_category' => array($category_id)));
+        wp_insert_post(array('post_title' => 'Unrelated Orchard Notes', 'post_status' => 'publish'));
+        $html = greenfarm_render_related_posts($current_id);
+
+        greenfarm_expect(str_contains($html, 'Compost Basics'), 'shared-category article is missing');
+        greenfarm_expect(! str_contains($html, 'Healthy Soil Guide'), 'current article must be excluded');
+        greenfarm_expect(! str_contains($html, 'Unrelated Orchard Notes'), 'unrelated article must be excluded');
+        greenfarm_expect(str_contains($html, get_permalink($related_id)), 'related article permalink is missing');
+    }
+);
+
+greenfarm_test(
+    'uncategorized post omits the related posts section',
+    static function (): void {
+        $post_id = wp_insert_post(array('post_title' => 'A Quiet Field Note', 'post_status' => 'publish'));
+        wp_set_object_terms($post_id, array(), 'category');
+        $html = greenfarm_render_related_posts($post_id);
+
+        greenfarm_expect('' === trim($html), 'uncategorized post must not render related posts');
+    }
+);
+
+greenfarm_test(
+    'share enhancement is enqueued only for a single post request',
+    static function (): void {
+        global $wp_query, $wp_the_query;
+
+        $post_id = wp_insert_post(array('post_title' => 'Shareable Farm Guide', 'post_status' => 'publish'));
+        $query = new WP_Query(array('p' => $post_id));
+        $query->is_single = true;
+        $query->is_singular = true;
+        $wp_query = $query;
+        $wp_the_query = $query;
+        wp_dequeue_script('greenfarm-share');
+        greenfarm_enqueue_assets();
+
+        greenfarm_expect(wp_script_is('greenfarm-share', 'enqueued'), 'single post must enqueue share enhancement');
     }
 );
 

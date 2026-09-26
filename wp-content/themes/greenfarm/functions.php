@@ -38,12 +38,24 @@ add_action('after_setup_theme', 'greenfarm_setup');
  */
 function greenfarm_enqueue_assets(): void
 {
+    $version = wp_get_theme()->get('Version');
+
     wp_enqueue_style(
         'greenfarm-style',
         get_stylesheet_uri(),
         array(),
-        wp_get_theme()->get('Version')
+        $version
     );
+
+    if (is_single()) {
+        wp_enqueue_script(
+            'greenfarm-share',
+            get_template_directory_uri() . '/assets/js/share.js',
+            array(),
+            $version,
+            true
+        );
+    }
 }
 add_action('wp_enqueue_scripts', 'greenfarm_enqueue_assets');
 
@@ -56,4 +68,3 @@ function greenfarm_get_blog_url(): string
 
     return $posts_page_id > 0 ? (string) get_permalink($posts_page_id) : home_url('/blog/');
 }
-

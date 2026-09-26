@@ -50,6 +50,8 @@ get_header();
             </footer>
         </article>
 
+        <?php get_template_part('template-parts/related', 'posts'); ?>
+
         <?php
         the_post_navigation(
             array(
@@ -62,4 +64,3 @@ get_header();
 </main>
 <?php
 get_footer();
-
