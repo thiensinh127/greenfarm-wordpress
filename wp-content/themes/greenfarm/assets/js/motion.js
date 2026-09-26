@@ -14,6 +14,16 @@
         return;
     }
 
+    if (typeof IntersectionObserver === 'undefined') {
+        return;
+    }
+
+    sections.forEach(function (section) {
+        Array.from(section.querySelectorAll('[data-reveal-child]')).forEach(function (child, index) {
+            child.style.setProperty('--reveal-delay', Math.min(index * 60, 180) + 'ms');
+        });
+    });
+
     var observer = new IntersectionObserver(function (entries) {
         entries.forEach(function (entry) {
             if (!entry.isIntersecting) {

@@ -1,5 +1,7 @@
 # GreenFarm Blog QA Checklist
 
+Homepage-specific checks are tracked separately in [GreenFarm Homepage QA](greenfarm-homepage-qa-checklist.md).
+
 ## Content and routing
 
 - [ ] `/blog/` uses the native Posts page query and displays paginated cards.

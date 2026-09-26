@@ -357,6 +357,36 @@ greenfarm_test(
 );
 
 greenfarm_test(
+    'homepage enqueues its styles and shared motion enhancement',
+    static function (): void {
+        global $wp_query, $wp_the_query;
+
+        $previous_query    = $wp_query;
+        $previous_wp_query = $wp_the_query;
+        $previous_show     = get_option('show_on_front');
+        $previous_front    = get_option('page_on_front');
+        $page_id           = wp_insert_post(array('post_type' => 'page', 'post_title' => 'Asset Home', 'post_status' => 'publish'));
+        update_option('show_on_front', 'page');
+        update_option('page_on_front', $page_id);
+        $query             = greenfarm_front_page_query($page_id);
+        $wp_query          = $query;
+        $wp_the_query      = $query;
+
+        wp_dequeue_style('greenfarm-home');
+        wp_dequeue_script('greenfarm-motion');
+        greenfarm_enqueue_assets();
+
+        greenfarm_expect(wp_style_is('greenfarm-home', 'enqueued'), 'front page must enqueue home.css');
+        greenfarm_expect(wp_script_is('greenfarm-motion', 'enqueued'), 'front page must enqueue shared reveal motion');
+
+        $wp_query     = $previous_query;
+        $wp_the_query = $previous_wp_query;
+        update_option('show_on_front', $previous_show);
+        update_option('page_on_front', $previous_front);
+    }
+);
+
+greenfarm_test(
     '404 renders one recovery heading and noindex robots',
     static function (): void {
         $query             = new WP_Query(array('p' => 99999999));
@@ -444,6 +474,8 @@ greenfarm_test(
         greenfarm_expect(str_contains($html, 'Food grown with care'), 'Page title is missing from the hero');
         greenfarm_expect(str_contains($html, 'Seasonal produce from healthy soil.'), 'Page excerpt is missing from the hero');
         greenfarm_expect(str_contains($html, 'Meet the people and practices behind every harvest.'), 'Page content is missing from the introduction');
+        greenfarm_expect(str_contains($html, 'A farm rooted in care'), 'approved introduction heading is missing');
+        greenfarm_expect(str_contains($html, 'Responsible methods'), 'approved farm proof points are missing');
         greenfarm_expect(str_contains($html, home_url('/products/')), 'Products CTA is missing');
         greenfarm_expect(str_contains($html, home_url('/about/')), 'About CTA is missing');
         greenfarm_expect(! preg_match('/<img[^>]+src=(?:""|\'\')/i', $html), 'front page must not output an image with an empty source');
