@@ -177,6 +177,7 @@ greenfarm_test(
         );
         greenfarm_expect(str_contains($html, 'Keeping Herbs Fresh'), 'post title is missing');
         greenfarm_expect(str_contains($html, get_permalink($post_id)), 'post permalink is missing');
+        greenfarm_expect(str_contains($html, '<h2 class="post-card__title">'), 'archive post cards must keep H2 headings');
     }
 );
 
@@ -603,6 +604,52 @@ greenfarm_test(
 
         wp_delete_post($draft_product, true);
         wp_delete_post($draft_story, true);
+    }
+);
+
+greenfarm_test(
+    'front page renders three latest articles and a contact CTA without leaking query context',
+    static function (): void {
+        foreach (get_posts(array('post_type' => 'post', 'post_status' => 'any', 'numberposts' => -1)) as $existing_post) {
+            wp_delete_post($existing_post->ID, true);
+        }
+
+        $article_ids = array();
+        for ($index = 1; $index <= 4; ++$index) {
+            $article_ids[] = wp_insert_post(
+                array(
+                    'post_title'   => sprintf('Homepage Article %d', $index),
+                    'post_excerpt' => sprintf('Educational article %d.', $index),
+                    'post_status'  => 'publish',
+                    'post_date'    => sprintf('2026-09-%02d 10:00:00', 19 + $index),
+                )
+            );
+        }
+        wp_insert_post(array('post_title' => 'Homepage Draft Article', 'post_status' => 'draft'));
+
+        $blog_page_id = wp_insert_post(array('post_type' => 'page', 'post_title' => 'Learn', 'post_status' => 'publish'));
+        update_option('page_for_posts', $blog_page_id);
+
+        $page_id           = wp_insert_post(array('post_type' => 'page', 'post_title' => 'Editorial Home', 'post_status' => 'publish'));
+        $post_before_proof = 0;
+        $capture_context   = static function () use (&$post_before_proof): void {
+            $post_before_proof = get_the_ID();
+        };
+        add_action('get_template_part_template-parts/home/proof', $capture_context);
+        $html = greenfarm_render_template('front-page.php', greenfarm_front_page_query($page_id));
+        remove_action('get_template_part_template-parts/home/proof', $capture_context);
+
+        greenfarm_expect(3 === preg_match_all('/<article[^>]+class="[^"]*\bpost-card\b[^"]*"/i', $html), 'homepage must render exactly three latest-article cards');
+        greenfarm_expect(3 === substr_count($html, '<h3 class="post-card__title">'), 'homepage article cards must use H3 headings');
+        greenfarm_expect(str_contains($html, 'Homepage Article 4'), 'newest article is missing');
+        greenfarm_expect(str_contains($html, 'Homepage Article 2'), 'third latest article is missing');
+        greenfarm_expect(! str_contains($html, 'Homepage Article 1'), 'fourth article must be outside the three-card limit');
+        greenfarm_expect(! str_contains($html, 'Homepage Draft Article'), 'draft article must not render');
+        greenfarm_expect(str_contains($html, get_permalink($article_ids[3])), 'article canonical link is missing');
+        greenfarm_expect(str_contains($html, get_permalink($blog_page_id)), 'configured Blog link is missing');
+        greenfarm_expect(str_contains($html, home_url('/contact/')), 'final Contact CTA is missing');
+        greenfarm_expect(! str_contains($html, '<form'), 'homepage must not render a fake newsletter form');
+        greenfarm_expect($page_id === $post_before_proof, 'Latest Articles query must restore the homepage Page context');
     }
 );
 
