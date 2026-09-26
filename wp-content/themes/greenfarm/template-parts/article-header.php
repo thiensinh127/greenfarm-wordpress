@@ -14,7 +14,7 @@ $greenfarm_schema = array(
     'mainEntityOfPage' => get_permalink(),
     'author'           => array(
         '@type' => 'Person',
-        'name'  => get_the_author(),
+        'name'  => wp_strip_all_tags(get_the_author()),
     ),
 );
 
@@ -36,5 +36,4 @@ if (has_post_thumbnail()) {
     <?php endif; ?>
     <?php get_template_part('template-parts/article', 'meta'); ?>
 </header>
-<script type="application/ld+json"><?php echo wp_json_encode($greenfarm_schema, JSON_UNESCAPED_SLASHES); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></script>
-
+<script type="application/ld+json"><?php echo wp_json_encode($greenfarm_schema); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></script>

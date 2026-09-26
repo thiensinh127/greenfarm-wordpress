@@ -355,5 +355,59 @@ greenfarm_test(
     }
 );
 
+greenfarm_test(
+    'Article JSON-LD cannot be terminated by filtered author text',
+    static function (): void {
+        $post_id = wp_insert_post(array('post_title' => 'Safe Structured Data', 'post_status' => 'publish'));
+        $query = new WP_Query(array('p' => $post_id));
+        $query->is_single = true;
+        $query->is_singular = true;
+        $query->is_home = false;
+        $malicious_author = static fn (): string => '</script><script>alert(1)</script>';
+        add_filter('the_author', $malicious_author);
+        $html = greenfarm_render_template('single.php', $query);
+        remove_filter('the_author', $malicious_author);
+
+        greenfarm_expect(! str_contains($html, '</script><script>'), 'JSON-LD permits a closing script sequence');
+    }
+);
+
+greenfarm_test(
+    'Tag and empty archive contexts emit noindex robots',
+    static function (): void {
+        $tag = wp_insert_term('Composting', 'post_tag');
+        $tag_id = is_wp_error($tag) ? (int) $tag->get_error_data('term_exists') : (int) $tag['term_id'];
+        $post_id = wp_insert_post(array('post_title' => 'Compost Notes', 'post_status' => 'publish'));
+        wp_set_post_tags($post_id, array($tag_id));
+        $tag_query = new WP_Query(array('tag_id' => $tag_id));
+        $tag_query->is_tag = true;
+        $tag_query->is_archive = true;
+        $tag_query->is_home = false;
+
+        $empty_term = wp_insert_term('Empty Topic', 'category');
+        $empty_id = is_wp_error($empty_term) ? (int) $empty_term->get_error_data('term_exists') : (int) $empty_term['term_id'];
+        $empty_query = new WP_Query(array('cat' => $empty_id));
+        $empty_query->is_category = true;
+        $empty_query->is_archive = true;
+        $empty_query->is_home = false;
+
+        greenfarm_expect(str_contains(greenfarm_render_robots($tag_query), 'noindex'), 'Tag archive must be noindex');
+        greenfarm_expect(str_contains(greenfarm_render_robots($empty_query), 'noindex'), 'empty archive must be noindex');
+    }
+);
+
+greenfarm_test(
+    'Search heading escapes a query exactly once',
+    static function (): void {
+        $query = new WP_Query(array('s' => 'soil & water'));
+        $query->is_search = true;
+        $query->is_home = false;
+        $html = greenfarm_render_template('search.php', $query);
+
+        greenfarm_expect(str_contains($html, 'soil &amp; water'), 'search query is not safely escaped');
+        greenfarm_expect(! str_contains($html, 'soil &amp;amp; water'), 'search query is double-escaped');
+    }
+);
+
 echo "\n{$greenfarm_tests} tests, {$greenfarm_failures} failures\n";
 exit($greenfarm_failures > 0 ? 1 : 0);

@@ -100,18 +100,20 @@ function greenfarm_get_blog_url(): string
 }
 
 /**
- * Keep missing URLs out of search indexes while allowing link discovery.
+ * Keep utility and thin archive URLs out of search indexes.
  *
  * @param array<string, bool> $robots Current robots directives.
  * @return array<string, bool>
  */
-function greenfarm_404_robots(array $robots): array
+function greenfarm_archive_robots(array $robots): array
 {
-    if (is_404()) {
+    $is_thin_archive = is_archive() && ! have_posts();
+
+    if (is_404() || is_tag() || is_author() || is_date() || is_attachment() || $is_thin_archive) {
         $robots['noindex'] = true;
         $robots['follow']  = true;
     }
 
     return $robots;
 }
-add_filter('wp_robots', 'greenfarm_404_robots');
+add_filter('wp_robots', 'greenfarm_archive_robots');

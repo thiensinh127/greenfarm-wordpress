@@ -70,5 +70,4 @@ foreach ($greenfarm_crumbs as $greenfarm_index => $greenfarm_crumb) {
         <?php endforeach; ?>
     </ol>
 </nav>
-<script type="application/ld+json"><?php echo wp_json_encode(array('@context' => 'https://schema.org', '@type' => 'BreadcrumbList', 'itemListElement' => $greenfarm_schema_items), JSON_UNESCAPED_SLASHES); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></script>
-
+<script type="application/ld+json"><?php echo wp_json_encode(array('@context' => 'https://schema.org', '@type' => 'BreadcrumbList', 'itemListElement' => $greenfarm_schema_items)); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></script>
