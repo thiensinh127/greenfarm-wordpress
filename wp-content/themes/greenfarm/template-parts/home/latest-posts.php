@@ -43,4 +43,3 @@ if ($greenfarm_latest_posts->have_posts()) :
     <?php
 endif;
 wp_reset_postdata();
-

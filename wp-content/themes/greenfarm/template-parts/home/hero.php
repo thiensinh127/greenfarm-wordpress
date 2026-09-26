@@ -48,4 +48,3 @@ $greenfarm_image   = get_post_thumbnail_id();
         </div>
     <?php endif; ?>
 </section>
-

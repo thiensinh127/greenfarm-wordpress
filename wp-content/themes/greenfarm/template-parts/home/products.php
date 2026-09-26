@@ -86,4 +86,3 @@ if (post_type_exists('greenfarm_product')) {
     endif;
     wp_reset_postdata();
 }
-
