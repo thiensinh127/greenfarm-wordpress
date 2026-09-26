@@ -178,5 +178,88 @@ greenfarm_test(
     }
 );
 
+greenfarm_test(
+    'single post renders one title heading inside a semantic article',
+    static function (): void {
+        $post_id = wp_insert_post(
+            array(
+                'post_title'   => 'How GreenFarm Builds Healthy Soil',
+                'post_content' => '<h2>Start with compost</h2><p>Healthy soil supports healthy crops.</p>',
+                'post_status'  => 'publish',
+            )
+        );
+        $query               = new WP_Query(array('p' => $post_id));
+        $query->is_single    = true;
+        $query->is_singular  = true;
+        $query->is_home      = false;
+        $html                = greenfarm_render_template('single.php', $query);
+
+        greenfarm_expect(1 === substr_count($html, '<h1'), 'single post must render exactly one H1');
+        greenfarm_expect(str_contains($html, '<article'), 'semantic article element is missing');
+        greenfarm_expect(str_contains($html, 'How GreenFarm Builds Healthy Soil'), 'single post title is missing');
+        greenfarm_expect(str_contains($html, '<h2>Start with compost</h2>'), 'native post content is missing');
+        greenfarm_expect(str_contains($html, '"@type":"Article"'), 'Article structured data is missing');
+        greenfarm_expect(str_contains($html, 'article-meta__author'), 'article author is missing');
+        greenfarm_expect(str_contains($html, 'data-share'), 'share controls are missing');
+    }
+);
+
+greenfarm_test(
+    'single post hides updated date when it matches publication date',
+    static function (): void {
+        $post_id = wp_insert_post(
+            array(
+                'post_title'        => 'Seasonal Harvest Notes',
+                'post_content'      => 'Fresh from the field.',
+                'post_status'       => 'publish',
+                'post_date'         => '2026-09-01 08:00:00',
+                'post_date_gmt'     => '2026-09-01 08:00:00',
+                'post_modified'     => '2026-09-01 08:00:00',
+                'post_modified_gmt' => '2026-09-01 08:00:00',
+            )
+        );
+        $query              = new WP_Query(array('p' => $post_id));
+        $query->is_single   = true;
+        $query->is_singular = true;
+        $query->is_home     = false;
+        $html               = greenfarm_render_template('single.php', $query);
+
+        greenfarm_expect(str_contains($html, 'article-meta__published'), 'published date is missing');
+        greenfarm_expect(! str_contains($html, 'article-meta__updated'), 'unchanged post must not show an updated date');
+    }
+);
+
+greenfarm_test(
+    'single post shows an updated date after a material revision',
+    static function (): void {
+        $post_id = wp_insert_post(
+            array(
+                'post_title'    => 'Revised Harvest Guide',
+                'post_content'  => 'Revised guidance.',
+                'post_status'   => 'publish',
+                'post_date'     => '2025-01-01 08:00:00',
+                'post_date_gmt' => '2025-01-01 08:00:00',
+            )
+        );
+        global $wpdb;
+        $wpdb->update(
+            $wpdb->posts,
+            array(
+                'post_modified'     => '2025-01-05 08:00:00',
+                'post_modified_gmt' => '2025-01-05 08:00:00',
+            ),
+            array('ID' => $post_id)
+        );
+        clean_post_cache($post_id);
+        $query               = new WP_Query(array('p' => $post_id));
+        $query->is_single    = true;
+        $query->is_singular  = true;
+        $query->is_home      = false;
+        $html                = greenfarm_render_template('single.php', $query);
+
+        greenfarm_expect(str_contains($html, 'article-meta__updated'), 'materially revised post must show updated date');
+    }
+);
+
 echo "\n{$greenfarm_tests} tests, {$greenfarm_failures} failures\n";
 exit($greenfarm_failures > 0 ? 1 : 0);
