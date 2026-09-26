@@ -339,5 +339,21 @@ greenfarm_test(
     }
 );
 
+greenfarm_test(
+    '404 renders one recovery heading and noindex robots',
+    static function (): void {
+        $query             = new WP_Query(array('p' => 99999999));
+        $query->is_404     = true;
+        $query->is_single  = false;
+        $query->is_singular = false;
+        $html              = greenfarm_render_template('404.php', $query);
+        $robots            = greenfarm_render_robots($query);
+
+        greenfarm_expect(1 === substr_count($html, '<h1'), '404 must render exactly one H1');
+        greenfarm_expect(str_contains($html, 'Page not found'), '404 recovery message is missing');
+        greenfarm_expect(str_contains($robots, 'noindex'), '404 robots must include noindex');
+    }
+);
+
 echo "\n{$greenfarm_tests} tests, {$greenfarm_failures} failures\n";
 exit($greenfarm_failures > 0 ? 1 : 0);

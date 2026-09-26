@@ -98,3 +98,20 @@ function greenfarm_get_blog_url(): string
 
     return $posts_page_id > 0 ? (string) get_permalink($posts_page_id) : home_url('/blog/');
 }
+
+/**
+ * Keep missing URLs out of search indexes while allowing link discovery.
+ *
+ * @param array<string, bool> $robots Current robots directives.
+ * @return array<string, bool>
+ */
+function greenfarm_404_robots(array $robots): array
+{
+    if (is_404()) {
+        $robots['noindex'] = true;
+        $robots['follow']  = true;
+    }
+
+    return $robots;
+}
+add_filter('wp_robots', 'greenfarm_404_robots');
