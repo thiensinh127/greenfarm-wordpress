@@ -13,8 +13,12 @@ if (! defined('ABSPATH')) {
 }
 
 require_once __DIR__ . '/includes/content-types.php';
+require_once __DIR__ . '/includes/product-meta.php';
 
 add_action('init', 'greenfarm_core_register_content_types');
+add_action('init', 'greenfarm_core_register_product_meta');
+add_action('add_meta_boxes', 'greenfarm_core_add_product_meta_boxes');
+add_action('save_post_greenfarm_product', 'greenfarm_core_save_product_meta');
 
 /**
  * Register content before refreshing permalinks on activation.
