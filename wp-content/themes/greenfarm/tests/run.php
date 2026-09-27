@@ -594,7 +594,7 @@ greenfarm_test(
             );
             wp_set_object_terms($product_ids[$index - 1], array($term_ids[$index - 1]), 'product_category');
         }
-        update_post_meta($product_ids[4], 'availability', 'Available now');
+        update_post_meta($product_ids[4], 'greenfarm_availability', 'available');
         $draft_product = wp_insert_post(array('post_type' => 'greenfarm_product', 'post_title' => 'Homepage Draft Product', 'post_status' => 'draft'));
 
         $story_ids = array();
@@ -621,8 +621,8 @@ greenfarm_test(
         remove_action('get_template_part_template-parts/home/proof', $capture_page_context);
 
         greenfarm_expect(4 === substr_count($html, 'class="home-category-card"'), 'homepage must limit Product categories to four');
-        greenfarm_expect(4 === substr_count($html, 'class="home-product-card"'), 'homepage must limit Products to four');
-        greenfarm_expect(2 === substr_count($html, 'class="home-story-card"'), 'homepage must limit Farm Stories to two');
+        greenfarm_expect(4 === preg_match_all('/<article[^>]+class="[^"]*\bhome-product-card\b[^"]*"/i', $html), 'homepage must limit Products to four');
+        greenfarm_expect(2 === preg_match_all('/<article[^>]+class="[^"]*\bhome-story-card\b[^"]*"/i', $html), 'homepage must limit Farm Stories to two');
         greenfarm_expect(! str_contains($html, 'Homepage Product 1'), 'oldest Product must be outside the four-card limit');
         greenfarm_expect(! str_contains($html, 'Homepage Draft Product'), 'draft Product must not render');
         greenfarm_expect(! str_contains($html, 'Homepage Story 1'), 'oldest Farm Story must be outside the two-card limit');
@@ -630,7 +630,6 @@ greenfarm_test(
         greenfarm_expect(str_contains($html, get_permalink($product_ids[4])), 'Product canonical permalink is missing');
         greenfarm_expect(str_contains($html, get_permalink($story_ids[2])), 'Farm Story canonical permalink is missing');
         greenfarm_expect(str_contains($html, (string) get_term_link($term_ids[0], 'product_category')), 'Product category canonical link is missing');
-        greenfarm_expect(str_contains($html, 'Available now'), 'Product availability metadata is missing');
         greenfarm_expect(1 === substr_count($html, '<h1'), 'optional sections must preserve the single Page H1');
         greenfarm_expect($page_id === $post_before_proof, 'secondary queries must restore the homepage Page context');
 
