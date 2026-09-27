@@ -150,6 +150,64 @@ function greenfarm_content_front_page_query(int $page_id): WP_Query
     return $query;
 }
 
+/**
+ * Build a single-business-content query.
+ */
+function greenfarm_content_single_query(int $post_id, string $post_type): WP_Query
+{
+    $query                    = new WP_Query(array('post_type' => $post_type, 'p' => $post_id));
+    $query->is_single         = true;
+    $query->is_singular       = true;
+    $query->is_archive        = false;
+    $query->queried_object    = get_post($post_id);
+    $query->queried_object_id = $post_id;
+
+    return $query;
+}
+
+/**
+ * Create an image attachment fixture with responsive metadata.
+ */
+function greenfarm_content_image(string $name, string $caption = ''): int
+{
+    $file = '2026/09/' . sanitize_file_name($name) . '.jpg';
+    $id   = wp_insert_attachment(
+        array(
+            'post_title'     => $name,
+            'post_excerpt'   => $caption,
+            'post_status'    => 'inherit',
+            'post_mime_type' => 'image/jpeg',
+            'guid'           => home_url('/wp-content/uploads/' . $file),
+        ),
+        $file
+    );
+    update_post_meta($id, '_wp_attached_file', $file);
+    wp_update_attachment_metadata(
+        $id,
+        array(
+            'width'  => 1200,
+            'height' => 800,
+            'file'   => $file,
+            'sizes'  => array(
+                'medium' => array(
+                    'file'      => sanitize_file_name($name) . '-300x200.jpg',
+                    'width'     => 300,
+                    'height'    => 200,
+                    'mime-type' => 'image/jpeg',
+                ),
+                'large' => array(
+                    'file'      => sanitize_file_name($name) . '-1024x683.jpg',
+                    'width'     => 1024,
+                    'height'    => 683,
+                    'mime-type' => 'image/jpeg',
+                ),
+            ),
+        )
+    );
+
+    return $id;
+}
+
 greenfarm_content_test(
     'shared Product card uses canonical metadata and requested semantic arguments',
     static function (): void {
@@ -441,6 +499,158 @@ greenfarm_content_test(
         }
 
         wp_delete_term((int) $empty_term['term_id'], 'product_category');
+    }
+);
+
+greenfarm_content_test(
+    'Product single renders safe optional facts, descriptions, media, and Product-only navigation',
+    static function (): void {
+        global $wpdb;
+
+        $term = wp_insert_term('Leafy Greens', 'product_category');
+        greenfarm_content_expect(! is_wp_error($term), 'Product Category fixture could not be created');
+        $term_id = (int) $term['term_id'];
+
+        $previous_id = wp_insert_post(array('post_type' => 'greenfarm_product', 'post_title' => 'Earlier Kale', 'post_status' => 'publish', 'post_date' => '2025-03-01 08:00:00'));
+        $product_id  = wp_insert_post(
+            array(
+                'post_type'    => 'greenfarm_product',
+                'post_title'   => 'Tuscan Kale',
+                'post_excerpt' => 'A tender, mineral-rich harvest.',
+                'post_content' => '<h2>About this harvest</h2><p>Picked in the cool morning.</p>',
+                'post_status'  => 'publish',
+                'post_date'    => '2025-03-02 08:00:00',
+            )
+        );
+        $next_id     = wp_insert_post(array('post_type' => 'greenfarm_product', 'post_title' => 'Later Spinach', 'post_status' => 'publish', 'post_date' => '2025-03-03 08:00:00'));
+        $story_id    = wp_insert_post(array('post_type' => 'farm_story', 'post_title' => 'Interleaved Story', 'post_status' => 'publish', 'post_date' => '2025-03-02 12:00:00'));
+        wp_set_object_terms($product_id, array($term_id), 'product_category');
+
+        update_post_meta($product_id, 'greenfarm_origin', 'North Field');
+        update_post_meta($product_id, 'greenfarm_harvest_season', 'Autumn');
+        update_post_meta($product_id, 'greenfarm_availability', 'limited');
+
+        $featured_id = greenfarm_content_image('product-featured');
+        $gallery_one = greenfarm_content_image('gallery-one', 'Rows ready for harvest');
+        $gallery_two = greenfarm_content_image('gallery-two');
+        $deleted_id  = greenfarm_content_image('gallery-deleted');
+        wp_delete_attachment($deleted_id, true);
+        $document_id = wp_insert_attachment(
+            array(
+                'post_title'     => 'Field notes PDF',
+                'post_status'    => 'inherit',
+                'post_mime_type' => 'application/pdf',
+                'guid'           => home_url('/wp-content/uploads/2026/09/field-notes.pdf'),
+            ),
+            '2026/09/field-notes.pdf'
+        );
+        set_post_thumbnail($product_id, $featured_id);
+
+        update_post_meta($product_id, 'greenfarm_storage_instructions', 'placeholder');
+        $wpdb->update(
+            $wpdb->postmeta,
+            array('meta_value' => 'Keep cool <script>alert(1)</script>'),
+            array('post_id' => $product_id, 'meta_key' => 'greenfarm_storage_instructions')
+        );
+        update_post_meta($product_id, 'greenfarm_gallery_ids', array($gallery_one));
+        $wpdb->update(
+            $wpdb->postmeta,
+            array('meta_value' => maybe_serialize(array($gallery_two, -5, $gallery_one, $gallery_two, $deleted_id, $document_id))),
+            array('post_id' => $product_id, 'meta_key' => 'greenfarm_gallery_ids')
+        );
+        clean_post_cache($product_id);
+
+        $html = greenfarm_content_render_template('single-greenfarm_product.php', greenfarm_content_single_query($product_id, 'greenfarm_product'));
+
+        greenfarm_content_expect(1 === substr_count($html, '<h1'), 'Product single must have one H1');
+        greenfarm_content_expect(str_contains($html, 'A tender, mineral-rich harvest.'), 'Product short description is missing');
+        greenfarm_content_expect(str_contains($html, '<h2>About this harvest</h2>'), 'Product full description is missing');
+        greenfarm_content_expect(str_contains($html, 'product-featured'), 'Product featured image is missing');
+        greenfarm_content_expect(str_contains($html, '<dl class="product-facts"'), 'Product facts must use a description list');
+        greenfarm_content_expect(str_contains($html, 'North Field') && str_contains($html, 'Autumn'), 'populated Product facts are missing');
+        greenfarm_content_expect(! str_contains($html, 'Farming method'), 'empty Product fact must be omitted');
+        greenfarm_content_expect(str_contains($html, 'Limited availability'), 'allowlisted Product availability label is missing');
+        greenfarm_content_expect(! str_contains($html, '<script>alert(1)</script>'), 'storage instructions were not escaped');
+        greenfarm_content_expect(str_contains($html, 'Keep cool &lt;script&gt;alert(1)&lt;/script&gt;'), 'escaped storage instructions are missing');
+        greenfarm_content_expect(str_contains($html, get_term_link($term_id, 'product_category')), 'Product Category canonical link is missing');
+        greenfarm_content_expect(str_contains($html, 'Earlier Kale') && str_contains($html, 'Later Spinach'), 'Product adjacent navigation is incomplete');
+        greenfarm_content_expect(! str_contains($html, 'Interleaved Story'), 'Product navigation leaked another post type');
+
+        greenfarm_content_expect(2 === preg_match_all('/<figure class="product-gallery__item"/', $html), 'gallery must render only two unique valid images');
+        greenfarm_content_expect(strpos($html, 'gallery-two') < strpos($html, 'gallery-one'), 'gallery image order was not preserved');
+        greenfarm_content_expect(str_contains($html, 'loading="lazy"'), 'gallery images must load lazily');
+        greenfarm_content_expect((bool) preg_match('/product-gallery__item.*?<img[^>]+width="[1-9][0-9]*"[^>]+height="[1-9][0-9]*"/s', $html), 'gallery intrinsic image dimensions are missing');
+        greenfarm_content_expect(str_contains($html, 'srcset='), 'gallery responsive srcset is missing');
+        greenfarm_content_expect(str_contains($html, 'sizes='), 'gallery responsive sizes are missing');
+        greenfarm_content_expect(str_contains($html, 'Rows ready for harvest'), 'gallery caption is missing');
+        greenfarm_content_expect(! str_contains($html, 'field-notes.pdf'), 'non-image attachment leaked into gallery');
+
+        $expected_crumbs = array('Home', 'Products', 'Leafy Greens', 'Tuscan Kale');
+        greenfarm_content_expect($expected_crumbs === greenfarm_content_breadcrumb_names($html), 'Product single breadcrumb JSON-LD is incomplete');
+        greenfarm_content_expect(str_contains($html, '>Leafy Greens</a>') && str_contains($html, '>Tuscan Kale</span>'), 'Product visible breadcrumbs do not match JSON-LD');
+
+        foreach (array($previous_id, $product_id, $next_id, $story_id, $featured_id, $gallery_one, $gallery_two, $document_id) as $id) {
+            wp_delete_post($id, true);
+        }
+        wp_delete_term($term_id, 'product_category');
+    }
+);
+
+greenfarm_content_test(
+    'Farm Story single is an independent editorial experience with Story-only navigation',
+    static function (): void {
+        global $wpdb;
+
+        $author_id = wp_create_user('greenfarm_story_author', wp_generate_password(), 'story@example.com');
+        wp_update_user(array('ID' => $author_id, 'display_name' => 'Maya Green'));
+        $previous_id = wp_insert_post(array('post_type' => 'farm_story', 'post_title' => 'Before the Rain', 'post_status' => 'publish', 'post_date' => '2025-04-01 08:00:00'));
+        $story_id    = wp_insert_post(
+            array(
+                'post_type'    => 'farm_story',
+                'post_title'   => 'A Morning in the Orchard',
+                'post_excerpt' => 'The first harvest of spring.',
+                'post_content' => '<h2>At first light</h2><p>The team walks each orchard row.</p>',
+                'post_status'  => 'publish',
+                'post_author'  => $author_id,
+                'post_date'    => '2025-04-02 08:00:00',
+            )
+        );
+        $next_id     = wp_insert_post(array('post_type' => 'farm_story', 'post_title' => 'After the Harvest', 'post_status' => 'publish', 'post_date' => '2025-04-03 08:00:00'));
+        $product_id  = wp_insert_post(array('post_type' => 'greenfarm_product', 'post_title' => 'Interleaved Product', 'post_status' => 'publish', 'post_date' => '2025-04-02 12:00:00'));
+        $featured_id = greenfarm_content_image('story-featured');
+        set_post_thumbnail($story_id, $featured_id);
+        $wpdb->update(
+            $wpdb->posts,
+            array('post_modified' => '2025-04-05 08:00:00', 'post_modified_gmt' => '2025-04-05 08:00:00'),
+            array('ID' => $story_id)
+        );
+        clean_post_cache($story_id);
+
+        $html = greenfarm_content_render_template('single-farm_story.php', greenfarm_content_single_query($story_id, 'farm_story'));
+
+        greenfarm_content_expect(1 === substr_count($html, '<h1'), 'Farm Story single must have one H1');
+        greenfarm_content_expect((bool) preg_match('/<article[^>]+class="[^"]*\bfarm-story\b/', $html), 'Farm Story needs semantic article markup');
+        greenfarm_content_expect(str_contains($html, 'Maya Green'), 'Farm Story author is missing');
+        greenfarm_content_expect(str_contains($html, 'story-meta__published'), 'Farm Story published date is missing');
+        greenfarm_content_expect(str_contains($html, 'story-meta__updated'), 'materially changed Farm Story needs an updated date');
+        greenfarm_content_expect(str_contains($html, 'story-featured'), 'Farm Story featured image is missing');
+        greenfarm_content_expect(str_contains($html, '<h2>At first light</h2>'), 'Farm Story content is missing');
+        greenfarm_content_expect(str_contains($html, 'Before the Rain') && str_contains($html, 'After the Harvest'), 'Farm Story adjacent navigation is incomplete');
+        greenfarm_content_expect(! str_contains($html, 'Interleaved Product'), 'Farm Story navigation leaked another post type');
+        greenfarm_content_expect(! str_contains($html, 'article-taxonomy') && ! str_contains($html, 'article-tags'), 'Blog taxonomy UI leaked into Farm Story');
+        greenfarm_content_expect(! str_contains($html, 'related-posts') && ! str_contains($html, 'data-share'), 'Blog related/share UI leaked into Farm Story');
+        greenfarm_content_expect(! str_contains($html, '"@type":"Article"') && ! str_contains($html, '"@type":"Product"') && ! str_contains($html, '"@type":"Review"'), 'unsupported structured data leaked into Farm Story');
+
+        $expected_crumbs = array('Home', 'Farm Stories', 'A Morning in the Orchard');
+        greenfarm_content_expect($expected_crumbs === greenfarm_content_breadcrumb_names($html), 'Farm Story breadcrumb JSON-LD is incomplete');
+        greenfarm_content_expect(str_contains($html, '>Farm Stories</a>') && str_contains($html, '>A Morning in the Orchard</span>'), 'Farm Story visible breadcrumbs do not match JSON-LD');
+
+        foreach (array($previous_id, $story_id, $next_id, $product_id, $featured_id) as $id) {
+            wp_delete_post($id, true);
+        }
+        if (function_exists('wp_delete_user')) {
+            wp_delete_user($author_id);
+        }
     }
 );
 
