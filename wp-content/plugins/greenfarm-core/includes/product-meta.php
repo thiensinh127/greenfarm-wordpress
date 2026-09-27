@@ -235,7 +235,12 @@ function greenfarm_core_render_product_gallery_meta_box(WP_Post $post): void
         <div data-greenfarm-gallery-preview>
             <?php foreach ($ids as $attachment_id) : ?>
                 <?php if (wp_attachment_is_image($attachment_id)) : ?>
-                    <?php echo wp_get_attachment_image($attachment_id, 'thumbnail'); ?>
+                    <span class="greenfarm-gallery-item" data-greenfarm-gallery-item>
+                        <?php echo wp_get_attachment_image($attachment_id, 'thumbnail'); ?>
+                        <button type="button" class="button-link-delete" data-greenfarm-gallery-remove-item data-attachment-id="<?php echo esc_attr((string) $attachment_id); ?>">
+                            <?php esc_html_e('Remove', 'greenfarm-core'); ?>
+                        </button>
+                    </span>
                 <?php endif; ?>
             <?php endforeach; ?>
         </div>
@@ -245,6 +250,36 @@ function greenfarm_core_render_product_gallery_meta_box(WP_Post $post): void
         </p>
     </div>
     <?php
+}
+
+/**
+ * Load Media Library gallery enhancement only on Product edit screens.
+ */
+function greenfarm_core_enqueue_product_admin_assets(string $hook_suffix): void
+{
+    if (! in_array($hook_suffix, array('post.php', 'post-new.php'), true)) {
+        return;
+    }
+
+    $screen = get_current_screen();
+    if (! $screen || 'greenfarm_product' !== $screen->post_type) {
+        return;
+    }
+
+    wp_enqueue_media();
+    wp_enqueue_style(
+        'greenfarm-core-product-admin',
+        plugins_url('assets/css/product-admin.css', GREENFARM_CORE_FILE),
+        array(),
+        GREENFARM_CORE_VERSION
+    );
+    wp_enqueue_script(
+        'greenfarm-core-product-gallery',
+        plugins_url('assets/js/product-gallery.js', GREENFARM_CORE_FILE),
+        array(),
+        GREENFARM_CORE_VERSION,
+        true
+    );
 }
 
 /**

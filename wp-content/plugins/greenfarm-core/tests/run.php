@@ -312,5 +312,39 @@ greenfarm_core_test(
     }
 );
 
+greenfarm_core_test(
+    'Product gallery admin assets load only on Product edit screens',
+    static function (): void {
+        greenfarm_core_expect(function_exists('greenfarm_core_enqueue_product_admin_assets'), 'Product admin enqueue function is missing');
+
+        wp_dequeue_script('greenfarm-core-product-gallery');
+        wp_dequeue_style('greenfarm-core-product-admin');
+        set_current_screen('greenfarm_product');
+        $media_calls = did_action('wp_enqueue_media');
+        greenfarm_core_enqueue_product_admin_assets('post.php');
+        greenfarm_core_expect(wp_script_is('greenfarm-core-product-gallery', 'enqueued'), 'Product gallery script was not enqueued');
+        greenfarm_core_expect(wp_style_is('greenfarm-core-product-admin', 'enqueued'), 'Product admin styles were not enqueued');
+        greenfarm_core_expect($media_calls + 1 === did_action('wp_enqueue_media'), 'native Media Library was not enqueued');
+
+        wp_dequeue_script('greenfarm-core-product-gallery');
+        wp_dequeue_style('greenfarm-core-product-admin');
+        set_current_screen('post');
+        $media_calls = did_action('wp_enqueue_media');
+        greenfarm_core_enqueue_product_admin_assets('post.php');
+        greenfarm_core_expect(! wp_script_is('greenfarm-core-product-gallery', 'enqueued'), 'gallery script leaked onto Post editor');
+        greenfarm_core_expect(! wp_style_is('greenfarm-core-product-admin', 'enqueued'), 'admin styles leaked onto Post editor');
+        greenfarm_core_expect($media_calls === did_action('wp_enqueue_media'), 'Media Library was enqueued for a Post');
+
+        set_current_screen('greenfarm_product');
+        greenfarm_core_enqueue_product_admin_assets('post-new.php');
+        greenfarm_core_expect(wp_script_is('greenfarm-core-product-gallery', 'enqueued'), 'new Product screen must enqueue gallery script');
+
+        wp_dequeue_script('greenfarm-core-product-gallery');
+        wp_dequeue_style('greenfarm-core-product-admin');
+        greenfarm_core_enqueue_product_admin_assets('edit.php');
+        greenfarm_core_expect(! wp_script_is('greenfarm-core-product-gallery', 'enqueued'), 'Product list screen must not enqueue gallery assets');
+    }
+);
+
 echo "\n{$greenfarm_core_tests} tests, {$greenfarm_core_failures} failures\n";
 exit($greenfarm_core_failures > 0 ? 1 : 0);

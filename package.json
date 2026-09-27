@@ -5,7 +5,7 @@
     "test": "npm run test:php && npm run test:plugin && npm run test:js",
     "test:php": "wp-playground-cli php --mount=./wp-content/themes/greenfarm:/wordpress/wp-content/themes/greenfarm -- /wordpress/wp-content/themes/greenfarm/tests/run.php",
     "test:plugin": "wp-playground-cli php --mount=./wp-content/plugins/greenfarm-core:/wordpress/wp-content/plugins/greenfarm-core -- /wordpress/wp-content/plugins/greenfarm-core/tests/run.php",
-    "test:js": "node --test wp-content/themes/greenfarm/tests/*.test.js",
+    "test:js": "node --test wp-content/themes/greenfarm/tests/*.test.js wp-content/plugins/greenfarm-core/tests/*.test.js",
     "lint:php": "wp-playground-cli php --mount=./wp-content/themes/greenfarm:/wordpress/wp-content/themes/greenfarm -- /wordpress/wp-content/themes/greenfarm/tests/lint.php"
   },
   "devDependencies": {
