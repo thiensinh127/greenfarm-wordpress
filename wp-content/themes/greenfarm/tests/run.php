@@ -984,5 +984,27 @@ greenfarm_test(
     }
 );
 
+greenfarm_test(
+    'Core Page templates omit an empty editor content region',
+    static function (): void {
+        $page_id = wp_insert_post(
+            array(
+                'post_type'    => 'page',
+                'post_title'   => 'About without body content',
+                'post_content' => '',
+                'post_status'  => 'publish',
+            )
+        );
+        $html = greenfarm_render_template(
+            'page-templates/about.php',
+            greenfarm_page_template_query($page_id, 'page-templates/about.php')
+        );
+
+        greenfarm_expect(! str_contains($html, 'core-page__content'), 'empty Page body must not leave a content wrapper');
+        greenfarm_expect(str_contains($html, 'core-page-hero'), 'empty Page body must retain its hero');
+        greenfarm_expect(str_contains($html, 'core-page-cta'), 'empty About body must retain its continuation CTA');
+    }
+);
+
 echo "\n{$greenfarm_tests} tests, {$greenfarm_failures} failures\n";
 exit($greenfarm_failures > 0 ? 1 : 0);

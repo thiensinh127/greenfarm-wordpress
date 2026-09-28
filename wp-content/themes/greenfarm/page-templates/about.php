@@ -24,9 +24,11 @@ get_header();
                 )
             );
             ?>
-            <div class="core-page__content" data-reveal>
-                <?php the_content(); ?>
-            </div>
+            <?php if ('' !== trim((string) get_post_field('post_content', get_the_ID()))) : ?>
+                <div class="core-page__content" data-reveal>
+                    <?php the_content(); ?>
+                </div>
+            <?php endif; ?>
             <?php get_template_part('template-parts/core-page/about-cta'); ?>
         </article>
         <?php
