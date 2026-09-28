@@ -65,7 +65,16 @@ function greenfarm_enqueue_assets(): void
         );
     }
 
-    if (greenfarm_is_blog_view() || is_front_page()) {
+    if (greenfarm_is_content_model_view()) {
+        wp_enqueue_style(
+            'greenfarm-content-models',
+            get_template_directory_uri() . '/assets/css/content-models.css',
+            array('greenfarm-style'),
+            $version
+        );
+    }
+
+    if (greenfarm_is_blog_view() || greenfarm_is_content_model_view() || is_front_page()) {
         wp_enqueue_script(
             'greenfarm-motion',
             get_template_directory_uri() . '/assets/js/motion.js',
@@ -99,6 +108,16 @@ add_action('wp_enqueue_scripts', 'greenfarm_enqueue_assets');
 function greenfarm_is_blog_view(): bool
 {
     return is_home() || is_category() || is_tag() || is_search() || is_singular('post');
+}
+
+/**
+ * Determine whether the current request uses a Product or Farm Story view.
+ */
+function greenfarm_is_content_model_view(): bool
+{
+    return is_post_type_archive(array('greenfarm_product', 'farm_story'))
+        || is_singular(array('greenfarm_product', 'farm_story'))
+        || is_tax('product_category');
 }
 
 /**

@@ -119,6 +119,38 @@ function greenfarm_content_render_robots(WP_Query $query): string
 }
 
 /**
+ * Capture conditional public assets for a main-query context.
+ *
+ * @return array<string, bool>
+ */
+function greenfarm_content_assets(WP_Query $query): array
+{
+    global $wp_query, $wp_the_query;
+
+    $previous_query    = $wp_query;
+    $previous_wp_query = $wp_the_query;
+    $wp_query          = $query;
+    $wp_the_query      = $query;
+
+    foreach (array('greenfarm-content-models', 'greenfarm-home') as $handle) {
+        wp_dequeue_style($handle);
+    }
+    wp_dequeue_script('greenfarm-motion');
+    greenfarm_enqueue_assets();
+
+    $assets = array(
+        'content_css' => wp_style_is('greenfarm-content-models', 'enqueued'),
+        'home_css'    => wp_style_is('greenfarm-home', 'enqueued'),
+        'motion'      => wp_script_is('greenfarm-motion', 'enqueued'),
+    );
+
+    $wp_query     = $previous_query;
+    $wp_the_query = $previous_wp_query;
+
+    return $assets;
+}
+
+/**
  * Read breadcrumb names from the rendered JSON-LD.
  *
  * @return array<int, string>
@@ -277,6 +309,49 @@ greenfarm_content_test(
 );
 
 greenfarm_content_test(
+    'shared cards select responsive image sizes for their actual layout context',
+    static function (): void {
+        $image_id   = greenfarm_content_image('card-context-image');
+        $product_id = wp_insert_post(array('post_type' => 'greenfarm_product', 'post_title' => 'Sized Product', 'post_status' => 'publish'));
+        $story_id   = wp_insert_post(array('post_type' => 'farm_story', 'post_title' => 'Sized Story', 'post_status' => 'publish'));
+        set_post_thumbnail($product_id, $image_id);
+        set_post_thumbnail($story_id, $image_id);
+
+        $product_archive = greenfarm_content_render_card('product-card', $product_id);
+        $product_home    = greenfarm_content_render_card('product-card', $product_id, array('image_context' => 'home'));
+        $story_archive   = greenfarm_content_render_card('story-card', $story_id);
+        $story_featured  = greenfarm_content_render_card('story-card', $story_id, array('image_context' => 'home-featured'));
+        $story_secondary = greenfarm_content_render_card('story-card', $story_id, array('image_context' => 'home-secondary'));
+
+        greenfarm_content_expect(str_contains($product_archive, '(min-width: 75rem) 23rem'), 'Product archive card sizes are not container-capped');
+        greenfarm_content_expect(str_contains($product_home, '(min-width: 75rem) 17rem'), 'Homepage Product card sizes do not match four columns');
+        greenfarm_content_expect(str_contains($story_archive, '(min-width: 75rem) 34rem'), 'Story archive card sizes do not match two columns');
+        greenfarm_content_expect(str_contains($story_featured, '(min-width: 75rem) 46rem'), 'featured Homepage Story sizes do not match the wide column');
+        greenfarm_content_expect(str_contains($story_secondary, '(min-width: 75rem) 22rem'), 'secondary Homepage Story sizes do not match the narrow column');
+
+        wp_delete_post($product_id, true);
+        wp_delete_post($story_id, true);
+        wp_delete_attachment($image_id, true);
+    }
+);
+
+greenfarm_content_test(
+    'business-content CSS gives primary text links effective 44px targets',
+    static function (): void {
+        $css = (string) file_get_contents(dirname(__DIR__) . '/assets/css/content-models.css');
+
+        greenfarm_content_expect(
+            (bool) preg_match('/\.breadcrumbs a,[\s\S]*?\.product-header__categories a\s*\{[^}]*display:\s*inline-flex;[^}]*min-height:\s*2\.75rem;/s', $css),
+            'breadcrumb and Product Category links need an effective 44px target'
+        );
+        greenfarm_content_expect(
+            (bool) preg_match('/\.product-card h2 a,[\s\S]*?\.story-card h2 a\s*\{[^}]*display:\s*inline-flex;[^}]*min-height:\s*2\.75rem;/s', $css),
+            'card title links need an effective 44px target'
+        );
+    }
+);
+
+greenfarm_content_test(
     'Homepage reuses bounded H3 Product and Story cards and restores its Page context',
     static function (): void {
         $products = array();
@@ -330,6 +405,60 @@ greenfarm_content_test(
         foreach (array_merge($products, $story_ids, array($draft_product_id, $draft_story_id, $page_id)) as $post_id) {
             wp_delete_post($post_id, true);
         }
+    }
+);
+
+greenfarm_content_test(
+    'content-model styles and motion load only on their public routes',
+    static function (): void {
+        $product_id = wp_insert_post(array('post_type' => 'greenfarm_product', 'post_title' => 'Asset Product', 'post_status' => 'publish'));
+        $story_id   = wp_insert_post(array('post_type' => 'farm_story', 'post_title' => 'Asset Story', 'post_status' => 'publish'));
+        $page_id    = wp_insert_post(array('post_type' => 'page', 'post_title' => 'Asset Page', 'post_status' => 'publish'));
+        $term       = wp_insert_term('Asset Category', 'product_category');
+        greenfarm_content_expect(! is_wp_error($term), 'asset Product Category fixture could not be created');
+        $term_id = (int) $term['term_id'];
+
+        $product_archive                       = new WP_Query(array('post_type' => 'greenfarm_product'));
+        $product_archive->is_archive           = true;
+        $product_archive->is_post_type_archive = true;
+        $product_archive->queried_object       = get_post_type_object('greenfarm_product');
+
+        $taxonomy_query                       = new WP_Query(array('post_type' => 'greenfarm_product', 'tax_query' => array(array('taxonomy' => 'product_category', 'field' => 'term_id', 'terms' => $term_id))));
+        $taxonomy_query->is_archive           = true;
+        $taxonomy_query->is_tax               = true;
+        $taxonomy_query->is_post_type_archive = false;
+        $taxonomy_query->queried_object       = get_term($term_id, 'product_category');
+        $taxonomy_query->queried_object_id    = $term_id;
+
+        foreach (array($product_archive, greenfarm_content_single_query($product_id, 'greenfarm_product'), greenfarm_content_single_query($story_id, 'farm_story'), $taxonomy_query) as $query) {
+            $assets = greenfarm_content_assets($query);
+            greenfarm_content_expect($assets['content_css'], 'content-model stylesheet is missing on a business-content route');
+            greenfarm_content_expect($assets['motion'], 'shared motion is missing on a business-content route');
+        }
+
+        $page_query                    = new WP_Query(array('page_id' => $page_id));
+        $page_query->is_page           = true;
+        $page_query->is_singular       = true;
+        $page_query->is_front_page     = false;
+        $page_query->queried_object    = get_post($page_id);
+        $page_query->queried_object_id = $page_id;
+        $page_assets                   = greenfarm_content_assets($page_query);
+        greenfarm_content_expect(! $page_assets['content_css'] && ! $page_assets['motion'], 'unrelated Page must not load content-model assets');
+
+        $previous_show_on_front = get_option('show_on_front');
+        $previous_page_on_front = get_option('page_on_front');
+        update_option('show_on_front', 'page');
+        update_option('page_on_front', $page_id);
+        $home_assets = greenfarm_content_assets(greenfarm_content_front_page_query($page_id));
+        update_option('show_on_front', $previous_show_on_front);
+        update_option('page_on_front', $previous_page_on_front);
+        greenfarm_content_expect($home_assets['home_css'] && $home_assets['motion'], 'Homepage must retain its own stylesheet and shared motion');
+        greenfarm_content_expect(! $home_assets['content_css'], 'Homepage shared cards must not require the content-model stylesheet');
+
+        foreach (array($product_id, $story_id, $page_id) as $post_id) {
+            wp_delete_post($post_id, true);
+        }
+        wp_delete_term($term_id, 'product_category');
     }
 );
 
@@ -566,6 +695,7 @@ greenfarm_content_test(
         greenfarm_content_expect(str_contains($html, 'A tender, mineral-rich harvest.'), 'Product short description is missing');
         greenfarm_content_expect(str_contains($html, '<h2>About this harvest</h2>'), 'Product full description is missing');
         greenfarm_content_expect(str_contains($html, 'product-featured'), 'Product featured image is missing');
+        greenfarm_content_expect(str_contains($html, '(min-width: 75rem) 69rem'), 'Product featured image sizes do not match its container');
         greenfarm_content_expect(str_contains($html, '<dl class="product-facts"'), 'Product facts must use a description list');
         greenfarm_content_expect(str_contains($html, 'North Field') && str_contains($html, 'Autumn'), 'populated Product facts are missing');
         greenfarm_content_expect(! str_contains($html, 'Farming method'), 'empty Product fact must be omitted');
@@ -582,6 +712,7 @@ greenfarm_content_test(
         greenfarm_content_expect((bool) preg_match('/product-gallery__item.*?<img[^>]+width="[1-9][0-9]*"[^>]+height="[1-9][0-9]*"/s', $html), 'gallery intrinsic image dimensions are missing');
         greenfarm_content_expect(str_contains($html, 'srcset='), 'gallery responsive srcset is missing');
         greenfarm_content_expect(str_contains($html, 'sizes='), 'gallery responsive sizes are missing');
+        greenfarm_content_expect(str_contains($html, '(min-width: 75rem) 22rem'), 'gallery sizes do not match its three-column layout');
         greenfarm_content_expect(str_contains($html, 'Rows ready for harvest'), 'gallery caption is missing');
         greenfarm_content_expect(! str_contains($html, 'field-notes.pdf'), 'non-image attachment leaked into gallery');
 
@@ -634,6 +765,7 @@ greenfarm_content_test(
         greenfarm_content_expect(str_contains($html, 'story-meta__published'), 'Farm Story published date is missing');
         greenfarm_content_expect(str_contains($html, 'story-meta__updated'), 'materially changed Farm Story needs an updated date');
         greenfarm_content_expect(str_contains($html, 'story-featured'), 'Farm Story featured image is missing');
+        greenfarm_content_expect(str_contains($html, '(min-width: 75rem) 69rem'), 'Farm Story featured image sizes do not match its container');
         greenfarm_content_expect(str_contains($html, '<h2>At first light</h2>'), 'Farm Story content is missing');
         greenfarm_content_expect(str_contains($html, 'Before the Rain') && str_contains($html, 'After the Harvest'), 'Farm Story adjacent navigation is incomplete');
         greenfarm_content_expect(! str_contains($html, 'Interleaved Product'), 'Farm Story navigation leaked another post type');

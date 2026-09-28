@@ -68,7 +68,8 @@ greenfarm_core_test(
         foreach ($expected as $support) {
             greenfarm_core_expect(post_type_supports('greenfarm_product', $support), "Product support {$support} is missing");
         }
-        foreach (array('comments', 'trackbacks', 'page-attributes', 'custom-fields') as $unsupported) {
+        greenfarm_core_expect(post_type_supports('greenfarm_product', 'custom-fields'), 'Product custom-fields support is required for REST meta exposure');
+        foreach (array('comments', 'trackbacks', 'page-attributes') as $unsupported) {
             greenfarm_core_expect(! post_type_supports('greenfarm_product', $unsupported), "Product must not enable {$unsupported}");
         }
     }
@@ -102,6 +103,21 @@ greenfarm_core_test(
         greenfarm_core_expect(true === $taxonomy->show_admin_column, 'Product Category admin column is missing');
         greenfarm_core_expect('products/category' === ($taxonomy->rewrite['slug'] ?? ''), 'Product Category rewrite slug is incorrect');
         greenfarm_core_expect(array('greenfarm_product') === array_values($taxonomy->object_type), 'Product Category must attach only to Products');
+    }
+);
+
+greenfarm_core_test(
+    'Product Category rewrite wins before Product attachment routes',
+    static function (): void {
+        global $wp_rewrite;
+
+        $rules            = array_keys($wp_rewrite->rewrite_rules());
+        $taxonomy_rule    = array_search('products/category/(.+?)/?$', $rules, true);
+        $attachment_rule  = array_search('products/[^/]+/([^/]+)/?$', $rules, true);
+
+        greenfarm_core_expect(false !== $taxonomy_rule, 'Product Category rewrite rule is missing');
+        greenfarm_core_expect(false !== $attachment_rule, 'Product attachment rewrite rule is missing');
+        greenfarm_core_expect($taxonomy_rule < $attachment_rule, 'Product attachment rule shadows Product Category URLs');
     }
 );
 
@@ -175,13 +191,38 @@ greenfarm_core_test(
         greenfarm_core_expect('' === greenfarm_core_sanitize_availability('preorder'), 'invalid availability must become empty');
         greenfarm_core_expect('' === greenfarm_core_sanitize_availability(array('available')), 'non-string availability must become empty');
         greenfarm_core_expect(
-            array(3, 4, 9) === greenfarm_core_sanitize_gallery_ids(array('3', -1, '3', 'nope', 4, 0, 9)),
+            array(3, 4, 9) === greenfarm_core_sanitize_gallery_ids(array('3', -1, '3', 'nope', 4, 0, 9, 1.9, '1e2', '03')),
             'gallery array must retain ordered unique positive integers'
         );
         greenfarm_core_expect(
             array(8, 2) === greenfarm_core_sanitize_gallery_ids('8,0,2,8,-5'),
             'gallery CSV must retain ordered unique positive integers'
         );
+    }
+);
+
+greenfarm_core_test(
+    'Product metadata is present in a real authenticated REST response',
+    static function (): void {
+        $admin_id = wp_create_user('greenfarm_rest_admin', 'greenfarm-pass', 'rest-admin@example.test');
+        (new WP_User($admin_id))->set_role('administrator');
+        wp_set_current_user($admin_id);
+
+        $post_id = wp_insert_post(array('post_type' => 'greenfarm_product', 'post_title' => 'REST Product', 'post_status' => 'publish'));
+        update_post_meta($post_id, 'greenfarm_origin', 'REST North Field');
+        update_post_meta($post_id, 'greenfarm_gallery_ids', array(8, 3));
+
+        do_action('rest_api_init', rest_get_server());
+        $request = new WP_REST_Request('GET', '/wp/v2/greenfarm_product/' . $post_id);
+        $request->set_param('context', 'edit');
+        $response = rest_do_request($request);
+        $data     = $response->get_data();
+
+        greenfarm_core_expect(200 === $response->get_status(), 'Product REST request failed');
+        greenfarm_core_expect('REST North Field' === ($data['meta']['greenfarm_origin'] ?? null), 'Product string meta is absent from REST');
+        greenfarm_core_expect(array(8, 3) === ($data['meta']['greenfarm_gallery_ids'] ?? null), 'Product gallery meta is absent from REST');
+
+        wp_set_current_user(0);
     }
 );
 
@@ -210,6 +251,8 @@ greenfarm_core_test(
         greenfarm_core_expect(str_contains($details, 'greenfarm_origin'), 'Origin field is missing');
         greenfarm_core_expect(str_contains($details, 'greenfarm_storage_instructions'), 'Storage field is missing');
         greenfarm_core_expect(str_contains($details, 'greenfarm_availability'), 'Availability field is missing');
+        greenfarm_core_expect(5 === substr_count($details, 'class="description"'), 'each Product detail field needs short help text');
+        greenfarm_core_expect(5 === substr_count($details, 'aria-describedby='), 'Product detail help text must be associated with its control');
 
         ob_start();
         greenfarm_core_render_product_gallery_meta_box($post);

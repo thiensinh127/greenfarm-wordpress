@@ -68,11 +68,17 @@ function greenfarm_core_sanitize_gallery_ids($value): array
 
     $ids = array();
     foreach ($value as $candidate) {
-        if (! is_scalar($candidate) || ! is_numeric($candidate)) {
+        if (is_int($candidate)) {
+            $id = $candidate;
+        } elseif (is_string($candidate) && preg_match('/^[1-9][0-9]*$/D', $candidate)) {
+            $id = (int) $candidate;
+            if ((string) $id !== $candidate) {
+                continue;
+            }
+        } else {
             continue;
         }
 
-        $id = (int) $candidate;
         if ($id > 0 && ! in_array($id, $ids, true)) {
             $ids[] = $id;
         }
@@ -182,6 +188,14 @@ function greenfarm_core_add_product_meta_boxes(): void
 }
 
 /**
+ * Hide the raw Custom Fields box while retaining its REST API support flag.
+ */
+function greenfarm_core_remove_default_product_custom_fields_box(): void
+{
+    remove_meta_box('postcustom', 'greenfarm_product', 'normal');
+}
+
+/**
  * Render structured Product detail controls.
  */
 function greenfarm_core_render_product_details_meta_box(WP_Post $post): void
@@ -189,22 +203,36 @@ function greenfarm_core_render_product_details_meta_box(WP_Post $post): void
     wp_nonce_field('greenfarm_core_save_product_meta', 'greenfarm_core_product_meta_nonce');
 
     $fields = array(
-        'greenfarm_origin'                  => __('Origin', 'greenfarm-core'),
-        'greenfarm_farming_method'          => __('Farming method', 'greenfarm-core'),
-        'greenfarm_harvest_season'          => __('Harvest season', 'greenfarm-core'),
-        'greenfarm_storage_instructions'    => __('Storage instructions', 'greenfarm-core'),
+        'greenfarm_origin'               => array(
+            'label'       => __('Origin', 'greenfarm-core'),
+            'description' => __('Where this product was grown.', 'greenfarm-core'),
+        ),
+        'greenfarm_farming_method'       => array(
+            'label'       => __('Farming method', 'greenfarm-core'),
+            'description' => __('How this product was grown.', 'greenfarm-core'),
+        ),
+        'greenfarm_harvest_season'       => array(
+            'label'       => __('Harvest season', 'greenfarm-core'),
+            'description' => __('The typical harvest months or season.', 'greenfarm-core'),
+        ),
+        'greenfarm_storage_instructions' => array(
+            'label'       => __('Storage instructions', 'greenfarm-core'),
+            'description' => __('How customers should store this product.', 'greenfarm-core'),
+        ),
     );
 
-    foreach ($fields as $key => $label) {
-        $value = (string) get_post_meta($post->ID, $key, true);
+    foreach ($fields as $key => $field) {
+        $value          = (string) get_post_meta($post->ID, $key, true);
+        $description_id = $key . '-description';
         ?>
         <p>
-            <label for="<?php echo esc_attr($key); ?>"><strong><?php echo esc_html($label); ?></strong></label><br>
+            <label for="<?php echo esc_attr($key); ?>"><strong><?php echo esc_html($field['label']); ?></strong></label><br>
             <?php if ('greenfarm_storage_instructions' === $key) : ?>
-                <textarea class="widefat" rows="4" id="<?php echo esc_attr($key); ?>" name="<?php echo esc_attr($key); ?>"><?php echo esc_textarea($value); ?></textarea>
+                <textarea class="widefat" rows="4" id="<?php echo esc_attr($key); ?>" name="<?php echo esc_attr($key); ?>" aria-describedby="<?php echo esc_attr($description_id); ?>"><?php echo esc_textarea($value); ?></textarea>
             <?php else : ?>
-                <input class="widefat" type="text" id="<?php echo esc_attr($key); ?>" name="<?php echo esc_attr($key); ?>" value="<?php echo esc_attr($value); ?>">
+                <input class="widefat" type="text" id="<?php echo esc_attr($key); ?>" name="<?php echo esc_attr($key); ?>" value="<?php echo esc_attr($value); ?>" aria-describedby="<?php echo esc_attr($description_id); ?>">
             <?php endif; ?>
+            <span class="description" id="<?php echo esc_attr($description_id); ?>"><?php echo esc_html($field['description']); ?></span>
         </p>
         <?php
     }
@@ -213,12 +241,13 @@ function greenfarm_core_render_product_details_meta_box(WP_Post $post): void
     ?>
     <p>
         <label for="greenfarm_availability"><strong><?php esc_html_e('Availability', 'greenfarm-core'); ?></strong></label><br>
-        <select class="widefat" id="greenfarm_availability" name="greenfarm_availability">
+        <select class="widefat" id="greenfarm_availability" name="greenfarm_availability" aria-describedby="greenfarm_availability-description">
             <option value=""><?php esc_html_e('Not specified', 'greenfarm-core'); ?></option>
             <?php foreach (greenfarm_core_get_availability_options() as $value => $label) : ?>
                 <option value="<?php echo esc_attr($value); ?>" <?php selected($availability, $value); ?>><?php echo esc_html($label); ?></option>
             <?php endforeach; ?>
         </select>
+        <span class="description" id="greenfarm_availability-description"><?php esc_html_e('The current public availability shown on Product cards and details.', 'greenfarm-core'); ?></span>
     </p>
     <?php
 }
@@ -279,6 +308,16 @@ function greenfarm_core_enqueue_product_admin_assets(string $hook_suffix): void
         array(),
         GREENFARM_CORE_VERSION,
         true
+    );
+    wp_localize_script(
+        'greenfarm-core-product-gallery',
+        'greenfarmProductGallery',
+        array(
+            'chooseImages' => __('Choose product images', 'greenfarm-core'),
+            'useImages'    => __('Use these images', 'greenfarm-core'),
+            'remove'       => __('Remove', 'greenfarm-core'),
+            'removeImage'  => __('Remove image', 'greenfarm-core'),
+        )
     );
 }
 

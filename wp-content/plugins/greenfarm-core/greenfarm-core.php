@@ -21,6 +21,7 @@ require_once __DIR__ . '/includes/product-meta.php';
 add_action('init', 'greenfarm_core_register_content_types');
 add_action('init', 'greenfarm_core_register_product_meta');
 add_action('add_meta_boxes', 'greenfarm_core_add_product_meta_boxes');
+add_action('add_meta_boxes_greenfarm_product', 'greenfarm_core_remove_default_product_custom_fields_box', 100);
 add_action('save_post_greenfarm_product', 'greenfarm_core_save_product_meta');
 add_action('admin_enqueue_scripts', 'greenfarm_core_enqueue_product_admin_assets');
 

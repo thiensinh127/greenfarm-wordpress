@@ -37,6 +37,7 @@ if ($greenfarm_stories->have_posts()) :
                         'heading_level' => 'h3',
                         'card_class'    => 'home-story-card',
                         'image_size'    => 'large',
+                        'image_context' => 0 === $greenfarm_stories->current_post ? 'home-featured' : 'home-secondary',
                     )
                 );
             }

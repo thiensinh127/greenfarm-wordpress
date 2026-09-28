@@ -45,7 +45,7 @@ get_header();
 
             <?php if (has_post_thumbnail()) : ?>
                 <figure class="story__featured-image" data-reveal>
-                    <?php the_post_thumbnail('full', array('sizes' => '(min-width: 64rem) 70vw, 100vw')); ?>
+                    <?php the_post_thumbnail('full', array('sizes' => '(min-width: 75rem) 69rem, (min-width: 40rem) 92vw, calc(100vw - 2rem)')); ?>
                 </figure>
             <?php endif; ?>
 

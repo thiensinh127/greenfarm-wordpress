@@ -7,7 +7,9 @@
     "test:plugin": "wp-playground-cli php --mount=./wp-content/plugins/greenfarm-core:/wordpress/wp-content/plugins/greenfarm-core -- /wordpress/wp-content/plugins/greenfarm-core/tests/run.php",
     "test:content": "wp-playground-cli php --mount=./wp-content/plugins/greenfarm-core:/wordpress/wp-content/plugins/greenfarm-core --mount=./wp-content/themes/greenfarm:/wordpress/wp-content/themes/greenfarm -- /wordpress/wp-content/themes/greenfarm/tests/content-models.php",
     "test:js": "node --test wp-content/themes/greenfarm/tests/*.test.js wp-content/plugins/greenfarm-core/tests/*.test.js",
-    "lint:php": "wp-playground-cli php --mount=./wp-content/themes/greenfarm:/wordpress/wp-content/themes/greenfarm -- /wordpress/wp-content/themes/greenfarm/tests/lint.php"
+    "lint:php": "npm run lint:php:theme && npm run lint:php:plugin",
+    "lint:php:theme": "wp-playground-cli php --mount=./wp-content/themes/greenfarm:/wordpress/wp-content/themes/greenfarm -- /wordpress/wp-content/themes/greenfarm/tests/lint.php",
+    "lint:php:plugin": "wp-playground-cli php --mount=./wp-content/plugins/greenfarm-core:/wordpress/wp-content/plugins/greenfarm-core -- /wordpress/wp-content/plugins/greenfarm-core/tests/lint.php"
   },
   "devDependencies": {
     "@wp-playground/cli": "3.1.55"

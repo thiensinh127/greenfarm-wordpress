@@ -41,7 +41,7 @@ if (! $greenfarm_valid_gallery_ids) {
                     false,
                     array(
                         'loading' => 'lazy',
-                        'sizes'   => '(min-width: 64rem) 50vw, 100vw',
+                        'sizes'   => '(min-width: 75rem) 22rem, (min-width: 64rem) calc(33.333vw - 2rem), (min-width: 40rem) calc(50vw - 2rem), calc(100vw - 2rem)',
                     )
                 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
                 ?>

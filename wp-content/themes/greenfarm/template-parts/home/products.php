@@ -66,6 +66,7 @@ if (post_type_exists('greenfarm_product')) {
                             'heading_level' => 'h3',
                             'card_class'    => 'home-product-card',
                             'image_size'    => 'medium_large',
+                            'image_context' => 'home',
                         )
                     );
                 }

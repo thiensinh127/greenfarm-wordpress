@@ -16,6 +16,30 @@ function greenfarm_core_register_content_types(): void
 {
     $shared_supports = array('title', 'editor', 'excerpt', 'thumbnail', 'revisions', 'author');
 
+    register_taxonomy(
+        'product_category',
+        array('greenfarm_product'),
+        array(
+            'labels' => array(
+                'name'          => __('Product Categories', 'greenfarm-core'),
+                'singular_name' => __('Product Category', 'greenfarm-core'),
+                'search_items'  => __('Search Product Categories', 'greenfarm-core'),
+                'all_items'     => __('All Product Categories', 'greenfarm-core'),
+                'edit_item'     => __('Edit Product Category', 'greenfarm-core'),
+                'add_new_item'  => __('Add New Product Category', 'greenfarm-core'),
+            ),
+            'public'            => true,
+            'hierarchical'      => true,
+            'show_in_rest'      => true,
+            'show_admin_column' => true,
+            'rewrite'           => array(
+                'slug'         => 'products/category',
+                'with_front'   => false,
+                'hierarchical' => true,
+            ),
+        )
+    );
+
     register_post_type(
         'greenfarm_product',
         array(
@@ -37,7 +61,7 @@ function greenfarm_core_register_content_types(): void
                 'with_front' => false,
             ),
             'menu_icon'           => 'dashicons-carrot',
-            'supports'            => $shared_supports,
+            'supports'            => array_merge($shared_supports, array('custom-fields')),
         )
     );
 
@@ -66,27 +90,4 @@ function greenfarm_core_register_content_types(): void
         )
     );
 
-    register_taxonomy(
-        'product_category',
-        array('greenfarm_product'),
-        array(
-            'labels' => array(
-                'name'          => __('Product Categories', 'greenfarm-core'),
-                'singular_name' => __('Product Category', 'greenfarm-core'),
-                'search_items'  => __('Search Product Categories', 'greenfarm-core'),
-                'all_items'     => __('All Product Categories', 'greenfarm-core'),
-                'edit_item'     => __('Edit Product Category', 'greenfarm-core'),
-                'add_new_item'  => __('Add New Product Category', 'greenfarm-core'),
-            ),
-            'public'            => true,
-            'hierarchical'      => true,
-            'show_in_rest'      => true,
-            'show_admin_column' => true,
-            'rewrite'           => array(
-                'slug'         => 'products/category',
-                'with_front'   => false,
-                'hierarchical' => true,
-            ),
-        )
-    );
 }

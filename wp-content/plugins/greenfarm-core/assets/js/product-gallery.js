@@ -5,6 +5,8 @@
         return;
     }
 
+    var strings = window.greenfarmProductGallery || {};
+
     document.querySelectorAll('[data-greenfarm-gallery]').forEach(function (gallery) {
         var input = gallery.querySelector('[data-greenfarm-gallery-input]');
         var preview = gallery.querySelector('[data-greenfarm-gallery-preview]');
@@ -46,8 +48,8 @@
                 remove.className = 'button-link-delete';
                 remove.dataset.greenfarmGalleryRemoveItem = '';
                 remove.dataset.attachmentId = String(attachment.id);
-                remove.textContent = 'Remove';
-                remove.ariaLabel = 'Remove image';
+                remove.textContent = strings.remove || 'Remove';
+                remove.ariaLabel = strings.removeImage || 'Remove image';
                 item.append(image, remove);
 
                 return item;
@@ -61,8 +63,8 @@
 
             if (!frame) {
                 frame = window.wp.media({
-                    title: 'Choose product images',
-                    button: { text: 'Use these images' },
+                    title: strings.chooseImages || 'Choose product images',
+                    button: { text: strings.useImages || 'Use these images' },
                     library: { type: 'image' },
                     multiple: true
                 });
