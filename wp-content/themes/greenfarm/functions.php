@@ -34,6 +34,15 @@ function greenfarm_setup(): void
 add_action('after_setup_theme', 'greenfarm_setup');
 
 /**
+ * Expose the native excerpt field for editor-managed Pages.
+ */
+function greenfarm_enable_page_excerpt(): void
+{
+    add_post_type_support('page', 'excerpt');
+}
+add_action('init', 'greenfarm_enable_page_excerpt');
+
+/**
  * Load global theme styles.
  */
 function greenfarm_enqueue_assets(): void

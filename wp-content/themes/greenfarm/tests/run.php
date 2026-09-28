@@ -102,6 +102,68 @@ function greenfarm_front_page_query(int $page_id): WP_Query
 }
 
 /**
+ * Build a native Page query with an assigned custom template.
+ */
+function greenfarm_page_template_query(int $page_id, string $template): WP_Query
+{
+    update_post_meta($page_id, '_wp_page_template', $template);
+
+    $query                    = new WP_Query(array('page_id' => $page_id));
+    $query->is_page           = true;
+    $query->is_singular       = true;
+    $query->is_home           = false;
+    $query->is_front_page     = false;
+    $query->queried_object    = get_post($page_id);
+    $query->queried_object_id = $page_id;
+
+    return $query;
+}
+
+/**
+ * Create an image attachment fixture with responsive metadata.
+ */
+function greenfarm_test_image(string $name, int $parent_id = 0): int
+{
+    $filename = sanitize_file_name($name) . '.jpg';
+    $file     = '2026/09/' . $filename;
+    $id       = wp_insert_attachment(
+        array(
+            'post_title'     => $name,
+            'post_status'    => 'inherit',
+            'post_mime_type' => 'image/jpeg',
+            'guid'           => home_url('/wp-content/uploads/' . $file),
+        ),
+        $file,
+        $parent_id
+    );
+    update_post_meta($id, '_wp_attached_file', $file);
+    wp_update_attachment_metadata(
+        $id,
+        array(
+            'width'  => 1600,
+            'height' => 900,
+            'file'   => $file,
+            'sizes'  => array(
+                'medium' => array(
+                    'file'      => sanitize_file_name($name) . '-300x169.jpg',
+                    'width'     => 300,
+                    'height'    => 169,
+                    'mime-type' => 'image/jpeg',
+                ),
+                'large' => array(
+                    'file'      => sanitize_file_name($name) . '-1024x576.jpg',
+                    'width'     => 1024,
+                    'height'    => 576,
+                    'mime-type' => 'image/jpeg',
+                ),
+            ),
+        )
+    );
+
+    return $id;
+}
+
+/**
  * Capture WordPress robots output for a specific query context.
  */
 function greenfarm_render_robots(WP_Query $query): string
@@ -681,6 +743,103 @@ greenfarm_test(
         greenfarm_expect(str_contains($html, home_url('/contact/')), 'final Contact CTA is missing');
         greenfarm_expect(! str_contains($html, '<form'), 'homepage must not render a fake newsletter form');
         greenfarm_expect($page_id === $post_before_proof, 'Latest Articles query must restore the homepage Page context');
+    }
+);
+
+greenfarm_test(
+    'Theme exposes the native Page excerpt field',
+    static function (): void {
+        greenfarm_expect(function_exists('greenfarm_enable_page_excerpt'), 'Page excerpt setup function is missing');
+        greenfarm_enable_page_excerpt();
+        greenfarm_expect(post_type_supports('page', 'excerpt'), 'Page excerpt support is missing');
+    }
+);
+
+greenfarm_test(
+    'About template renders native Page fields and a bounded continuation CTA',
+    static function (): void {
+        $page_id = wp_insert_post(
+            array(
+                'post_type'    => 'page',
+                'post_title'   => 'GreenFarm & Cộng đồng',
+                'post_excerpt' => 'Canh tác có trách nhiệm từ đất khỏe.',
+                'post_content' => '<h2>Câu chuyện của chúng tôi</h2><p>Nội dung do biên tập viên quản lý.</p>',
+                'post_status'  => 'publish',
+            )
+        );
+        set_post_thumbnail($page_id, greenfarm_test_image('about-field', $page_id));
+
+        $templates = wp_get_theme()->get_page_templates(null, 'page');
+        $html      = greenfarm_render_template(
+            'page-templates/about.php',
+            greenfarm_page_template_query($page_id, 'page-templates/about.php')
+        );
+
+        greenfarm_expect('GreenFarm About' === ($templates['page-templates/about.php'] ?? ''), 'About template header is missing');
+        greenfarm_expect(1 === substr_count($html, '<h1'), 'About must render exactly one H1');
+        greenfarm_expect(str_contains($html, esc_html(get_the_title($page_id))), 'About title is missing or unsafe');
+        greenfarm_expect(str_contains($html, 'Canh tác có trách nhiệm từ đất khỏe.'), 'explicit Page excerpt is missing');
+        greenfarm_expect(str_contains($html, '<h2>Câu chuyện của chúng tôi</h2>'), 'native Page blocks are missing');
+        greenfarm_expect(str_contains($html, 'width="1600"'), 'featured image width is missing');
+        greenfarm_expect(str_contains($html, 'height="900"'), 'featured image height is missing');
+        greenfarm_expect(str_contains($html, 'srcset='), 'featured image srcset is missing');
+        greenfarm_expect(str_contains($html, 'sizes='), 'featured image sizes are missing');
+        greenfarm_expect(str_contains($html, home_url('/products/')), 'About Products CTA is missing');
+        greenfarm_expect(str_contains($html, home_url('/contact/')), 'About Contact CTA is missing');
+    }
+);
+
+greenfarm_test(
+    'Contact template renders editor-owned contact blocks without manufactured facts',
+    static function (): void {
+        $page_id = wp_insert_post(
+            array(
+                'post_type'    => 'page',
+                'post_title'   => 'Liên hệ GreenFarm',
+                'post_excerpt' => 'Kết nối trực tiếp với GreenFarm.',
+                'post_content' => '<h2>Thông tin liên hệ</h2><div class="wp-block-buttons"><div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="mailto:qa-contact@greenfarm.test">Gửi email</a></div></div>',
+                'post_status'  => 'publish',
+            )
+        );
+
+        $templates = wp_get_theme()->get_page_templates(null, 'page');
+        $html      = greenfarm_render_template(
+            'page-templates/contact.php',
+            greenfarm_page_template_query($page_id, 'page-templates/contact.php')
+        );
+
+        greenfarm_expect('GreenFarm Contact' === ($templates['page-templates/contact.php'] ?? ''), 'Contact template header is missing');
+        greenfarm_expect(1 === substr_count($html, '<h1'), 'Contact must render exactly one H1');
+        greenfarm_expect(str_contains($html, '<h2>Thông tin liên hệ</h2>'), 'Contact Page blocks are missing');
+        greenfarm_expect(str_contains($html, 'mailto:qa-contact@greenfarm.test'), 'editor-owned email action is missing');
+        greenfarm_expect(! str_contains($html, '<form'), 'Contact template must not manufacture a form');
+        greenfarm_expect(! str_contains($html, 'core-page-contact-card'), 'Contact template must not manufacture a contact card');
+    }
+);
+
+greenfarm_test(
+    'Core Page templates omit optional fields safely',
+    static function (): void {
+        $page_id = wp_insert_post(
+            array(
+                'post_type'    => 'page',
+                'post_title'   => 'GreenFarm không có ảnh',
+                'post_excerpt' => '',
+                'post_content' => '<h2>Nội dung chính</h2><p>Body-only summary must stay in the body.</p>',
+                'post_status'  => 'publish',
+            )
+        );
+        update_post_meta($page_id, '_thumbnail_id', 99999999);
+
+        $html = greenfarm_render_template(
+            'page-templates/contact.php',
+            greenfarm_page_template_query($page_id, 'page-templates/contact.php')
+        );
+
+        greenfarm_expect(! str_contains($html, 'core-page-hero__summary'), 'empty manual excerpt must not generate a summary');
+        greenfarm_expect(! str_contains($html, 'core-page-hero__media'), 'invalid featured image must not leave a media wrapper');
+        greenfarm_expect(! preg_match('/<img[^>]+src=(?:""|\'\')/i', $html), 'template must not render an empty image source');
+        greenfarm_expect(1 === substr_count($html, 'Body-only summary must stay in the body.'), 'body content must render once and never become an excerpt');
     }
 );
 
