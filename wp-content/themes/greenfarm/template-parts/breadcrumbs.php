@@ -12,7 +12,52 @@ $greenfarm_crumbs = array(
     ),
 );
 
-if (is_home() || is_category() || is_single()) {
+if (is_post_type_archive('greenfarm_product')) {
+    $greenfarm_crumbs[] = array(
+        'label' => __('Products', 'greenfarm'),
+        'url'   => '',
+    );
+} elseif (is_tax('product_category')) {
+    $greenfarm_crumbs[] = array(
+        'label' => __('Products', 'greenfarm'),
+        'url'   => (string) get_post_type_archive_link('greenfarm_product'),
+    );
+    $greenfarm_crumbs[] = array(
+        'label' => single_term_title('', false),
+        'url'   => '',
+    );
+} elseif (is_post_type_archive('farm_story')) {
+    $greenfarm_crumbs[] = array(
+        'label' => __('Farm Stories', 'greenfarm'),
+        'url'   => '',
+    );
+} elseif (is_singular('greenfarm_product')) {
+    $greenfarm_crumbs[] = array(
+        'label' => __('Products', 'greenfarm'),
+        'url'   => (string) get_post_type_archive_link('greenfarm_product'),
+    );
+    $greenfarm_product_categories = get_the_terms(get_the_ID(), 'product_category');
+    if ($greenfarm_product_categories && ! is_wp_error($greenfarm_product_categories)) {
+        $greenfarm_primary_product_category = $greenfarm_product_categories[0];
+        $greenfarm_crumbs[]                  = array(
+            'label' => $greenfarm_primary_product_category->name,
+            'url'   => get_term_link($greenfarm_primary_product_category),
+        );
+    }
+    $greenfarm_crumbs[] = array(
+        'label' => get_the_title(),
+        'url'   => '',
+    );
+} elseif (is_singular('farm_story')) {
+    $greenfarm_crumbs[] = array(
+        'label' => __('Farm Stories', 'greenfarm'),
+        'url'   => (string) get_post_type_archive_link('farm_story'),
+    );
+    $greenfarm_crumbs[] = array(
+        'label' => get_the_title(),
+        'url'   => '',
+    );
+} elseif (is_home() || is_category() || is_singular('post')) {
     $greenfarm_crumbs[] = array(
         'label' => __('Blog', 'greenfarm'),
         'url'   => greenfarm_get_blog_url(),
@@ -24,7 +69,7 @@ if (is_category()) {
         'label' => single_cat_title('', false),
         'url'   => '',
     );
-} elseif (is_single()) {
+} elseif (is_singular('post')) {
     $greenfarm_categories = get_the_category();
     if (! empty($greenfarm_categories)) {
         $greenfarm_primary_category = $greenfarm_categories[0];

@@ -59,25 +59,16 @@ if (post_type_exists('greenfarm_product')) {
                 <?php
                 while ($greenfarm_products->have_posts()) {
                     $greenfarm_products->the_post();
-                    $greenfarm_availability = trim((string) get_post_meta(get_the_ID(), 'availability', true));
-                    ?>
-                    <article class="home-product-card" data-reveal-child>
-                        <?php if (has_post_thumbnail()) : ?>
-                            <a class="home-product-card__media" href="<?php the_permalink(); ?>" tabindex="-1" aria-hidden="true">
-                                <?php the_post_thumbnail('medium_large', array('sizes' => '(min-width: 64rem) 25vw, (min-width: 40rem) 50vw, 100vw')); ?>
-                            </a>
-                        <?php endif; ?>
-                        <div class="home-product-card__body">
-                            <?php if ($greenfarm_availability) : ?>
-                                <p class="home-product-card__availability"><?php echo esc_html($greenfarm_availability); ?></p>
-                            <?php endif; ?>
-                            <h3><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h3>
-                            <?php if (has_excerpt()) : ?>
-                                <p><?php echo esc_html(get_the_excerpt()); ?></p>
-                            <?php endif; ?>
-                        </div>
-                    </article>
-                    <?php
+                    get_template_part(
+                        'template-parts/content',
+                        'product-card',
+                        array(
+                            'heading_level' => 'h3',
+                            'card_class'    => 'home-product-card',
+                            'image_size'    => 'medium_large',
+                            'image_context' => 'home',
+                        )
+                    );
                 }
                 ?>
             </div>

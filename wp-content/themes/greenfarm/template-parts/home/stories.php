@@ -30,21 +30,16 @@ if ($greenfarm_stories->have_posts()) :
             <?php
             while ($greenfarm_stories->have_posts()) {
                 $greenfarm_stories->the_post();
-                ?>
-                <article class="home-story-card" data-reveal-child>
-                    <?php if (has_post_thumbnail()) : ?>
-                        <a class="home-story-card__media" href="<?php the_permalink(); ?>" tabindex="-1" aria-hidden="true">
-                            <?php the_post_thumbnail('large', array('sizes' => '(min-width: 64rem) 50vw, 100vw')); ?>
-                        </a>
-                    <?php endif; ?>
-                    <div class="home-story-card__body">
-                        <h3><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></h3>
-                        <?php if (has_excerpt()) : ?>
-                            <p><?php echo esc_html(get_the_excerpt()); ?></p>
-                        <?php endif; ?>
-                    </div>
-                </article>
-                <?php
+                get_template_part(
+                    'template-parts/content',
+                    'story-card',
+                    array(
+                        'heading_level' => 'h3',
+                        'card_class'    => 'home-story-card',
+                        'image_size'    => 'large',
+                        'image_context' => 0 === $greenfarm_stories->current_post ? 'home-featured' : 'home-secondary',
+                    )
+                );
             }
             ?>
         </div>
