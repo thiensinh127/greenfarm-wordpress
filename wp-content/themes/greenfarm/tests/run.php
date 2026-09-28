@@ -223,6 +223,40 @@ function greenfarm_breadcrumb_schema(string $html): array
 }
 
 /**
+ * Capture conditional public assets for a Page query.
+ *
+ * @return array<string, bool>
+ */
+function greenfarm_page_assets(WP_Query $query): array
+{
+    global $wp_query, $wp_the_query;
+
+    $previous_query    = $wp_query;
+    $previous_wp_query = $wp_the_query;
+    $wp_query          = $query;
+    $wp_the_query      = $query;
+
+    foreach (array('greenfarm-blog', 'greenfarm-home', 'greenfarm-content-models', 'greenfarm-core-pages') as $handle) {
+        wp_dequeue_style($handle);
+    }
+    wp_dequeue_script('greenfarm-motion');
+    greenfarm_enqueue_assets();
+
+    $assets = array(
+        'blog_css'    => wp_style_is('greenfarm-blog', 'enqueued'),
+        'home_css'    => wp_style_is('greenfarm-home', 'enqueued'),
+        'content_css' => wp_style_is('greenfarm-content-models', 'enqueued'),
+        'core_css'    => wp_style_is('greenfarm-core-pages', 'enqueued'),
+        'motion'      => wp_script_is('greenfarm-motion', 'enqueued'),
+    );
+
+    $wp_query     = $previous_query;
+    $wp_the_query = $previous_wp_query;
+
+    return $assets;
+}
+
+/**
  * Render related posts for a real current Post.
  */
 function greenfarm_render_related_posts(int $post_id): string
@@ -925,6 +959,28 @@ greenfarm_test(
         $robots = greenfarm_render_robots($query);
 
         greenfarm_expect(! str_contains($robots, 'noindex'), 'published core Page must remain indexable');
+    }
+);
+
+greenfarm_test(
+    'Core Page assets load only for the two dedicated templates',
+    static function (): void {
+        $about_id   = wp_insert_post(array('post_type' => 'page', 'post_title' => 'Asset About', 'post_status' => 'publish'));
+        $contact_id = wp_insert_post(array('post_type' => 'page', 'post_title' => 'Asset Contact', 'post_status' => 'publish'));
+        $default_id = wp_insert_post(array('post_type' => 'page', 'post_title' => 'Asset Default', 'post_status' => 'publish'));
+        $custom_id  = wp_insert_post(array('post_type' => 'page', 'post_title' => 'Asset Custom', 'post_status' => 'publish'));
+
+        $about = greenfarm_page_assets(greenfarm_page_template_query($about_id, 'page-templates/about.php'));
+        $contact = greenfarm_page_assets(greenfarm_page_template_query($contact_id, 'page-templates/contact.php'));
+        $default = greenfarm_page_assets(greenfarm_page_template_query($default_id, 'default'));
+        $custom = greenfarm_page_assets(greenfarm_page_template_query($custom_id, 'page-templates/unrelated.php'));
+
+        greenfarm_expect($about['core_css'] && $about['motion'], 'About must enqueue core-page CSS and motion');
+        greenfarm_expect($contact['core_css'] && $contact['motion'], 'Contact must enqueue core-page CSS and motion');
+        greenfarm_expect(! $default['core_css'] && ! $default['motion'], 'default Page must not enqueue core-page assets');
+        greenfarm_expect(! $custom['core_css'] && ! $custom['motion'], 'unrelated custom template must not enqueue core-page assets');
+        greenfarm_expect(! $about['blog_css'] && ! $about['home_css'] && ! $about['content_css'], 'About must not enqueue unrelated route styles');
+        greenfarm_expect(! $contact['blog_css'] && ! $contact['home_css'] && ! $contact['content_css'], 'Contact must not enqueue unrelated route styles');
     }
 );
 

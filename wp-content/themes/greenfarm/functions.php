@@ -83,7 +83,16 @@ function greenfarm_enqueue_assets(): void
         );
     }
 
-    if (greenfarm_is_blog_view() || greenfarm_is_content_model_view() || is_front_page()) {
+    if (greenfarm_is_core_page_view()) {
+        wp_enqueue_style(
+            'greenfarm-core-pages',
+            get_template_directory_uri() . '/assets/css/core-pages.css',
+            array('greenfarm-style'),
+            $version
+        );
+    }
+
+    if (greenfarm_is_blog_view() || greenfarm_is_content_model_view() || greenfarm_is_core_page_view() || is_front_page()) {
         wp_enqueue_script(
             'greenfarm-motion',
             get_template_directory_uri() . '/assets/js/motion.js',
@@ -127,6 +136,14 @@ function greenfarm_is_content_model_view(): bool
     return is_post_type_archive(array('greenfarm_product', 'farm_story'))
         || is_singular(array('greenfarm_product', 'farm_story'))
         || is_tax('product_category');
+}
+
+/**
+ * Determine whether the current Page uses a GreenFarm core Page template.
+ */
+function greenfarm_is_core_page_view(): bool
+{
+    return is_page_template(array('page-templates/about.php', 'page-templates/contact.php'));
 }
 
 /**
