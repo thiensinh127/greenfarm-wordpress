@@ -57,6 +57,11 @@ if (is_post_type_archive('greenfarm_product')) {
         'label' => get_the_title(),
         'url'   => '',
     );
+} elseif (is_page() && ! is_front_page()) {
+    $greenfarm_crumbs[] = array(
+        'label' => get_the_title(),
+        'url'   => '',
+    );
 } elseif (is_home() || is_category() || is_singular('post')) {
     $greenfarm_crumbs[] = array(
         'label' => __('Blog', 'greenfarm'),
@@ -94,7 +99,7 @@ foreach ($greenfarm_crumbs as $greenfarm_index => $greenfarm_crumb) {
     $greenfarm_item = array(
         '@type'    => 'ListItem',
         'position' => $greenfarm_index + 1,
-        'name'     => wp_strip_all_tags($greenfarm_crumb['label']),
+        'name'     => wp_strip_all_tags(html_entity_decode($greenfarm_crumb['label'], ENT_QUOTES | ENT_HTML5, 'UTF-8')),
     );
     if ('' !== $greenfarm_crumb['url']) {
         $greenfarm_item['item'] = $greenfarm_crumb['url'];

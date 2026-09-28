@@ -186,6 +186,43 @@ function greenfarm_render_robots(WP_Query $query): string
 }
 
 /**
+ * Read visible breadcrumb labels from rendered theme markup.
+ *
+ * @return array<int, string>
+ */
+function greenfarm_breadcrumb_labels(string $html): array
+{
+    if (! preg_match('/<nav class="breadcrumbs".*?<ol>(.*?)<\/ol>.*?<\/nav>/s', $html, $nav)) {
+        return array();
+    }
+
+    if (! preg_match_all('/<li>\s*(?:<a\b[^>]*>|<span\b[^>]*>)(.*?)(?:<\/a>|<\/span>)\s*<\/li>/s', $nav[1], $items)) {
+        return array();
+    }
+
+    return array_map(
+        static fn (string $label): string => html_entity_decode(trim(wp_strip_all_tags($label)), ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+        $items[1]
+    );
+}
+
+/**
+ * Read BreadcrumbList data from rendered theme markup.
+ *
+ * @return array<string, mixed>
+ */
+function greenfarm_breadcrumb_schema(string $html): array
+{
+    if (! preg_match('/<script type="application\/ld\+json">(.*?)<\/script>/s', $html, $matches)) {
+        return array();
+    }
+
+    $schema = json_decode($matches[1], true);
+
+    return is_array($schema) ? $schema : array();
+}
+
+/**
  * Render related posts for a real current Post.
  */
 function greenfarm_render_related_posts(int $post_id): string
@@ -840,6 +877,54 @@ greenfarm_test(
         greenfarm_expect(! str_contains($html, 'core-page-hero__media'), 'invalid featured image must not leave a media wrapper');
         greenfarm_expect(! preg_match('/<img[^>]+src=(?:""|\'\')/i', $html), 'template must not render an empty image source');
         greenfarm_expect(1 === substr_count($html, 'Body-only summary must stay in the body.'), 'body content must render once and never become an excerpt');
+    }
+);
+
+greenfarm_test(
+    'Core Page breadcrumb matches its safe BreadcrumbList data',
+    static function (): void {
+        $page_id = wp_insert_post(
+            array(
+                'post_type'   => 'page',
+                'post_title'  => 'GreenFarm & "Đất lành"',
+                'post_status' => 'publish',
+            )
+        );
+        $html = greenfarm_render_template(
+            'page-templates/about.php',
+            greenfarm_page_template_query($page_id, 'page-templates/about.php')
+        );
+
+        $visible = greenfarm_breadcrumb_labels($html);
+        $schema  = greenfarm_breadcrumb_schema($html);
+        $items   = $schema['itemListElement'] ?? array();
+        $names   = array_column($items, 'name');
+
+        greenfarm_expect(array('Home', 'GreenFarm & “Đất lành”') === $visible, 'visible core Page breadcrumb is incomplete or unsafe');
+        greenfarm_expect('BreadcrumbList' === ($schema['@type'] ?? ''), 'BreadcrumbList schema is missing');
+        greenfarm_expect(
+            $visible === $names,
+            'visible and structured breadcrumb labels differ: ' . wp_json_encode(array('visible' => $visible, 'schema' => $names))
+        );
+        greenfarm_expect(home_url('/') === ($items[0]['item'] ?? ''), 'Home schema item URL is missing');
+        greenfarm_expect(! isset($items[1]['item']), 'current Page schema item must not have a redundant URL');
+    }
+);
+
+greenfarm_test(
+    'Published core Pages keep WordPress index defaults',
+    static function (): void {
+        $page_id = wp_insert_post(
+            array(
+                'post_type'   => 'page',
+                'post_title'  => 'Về GreenFarm',
+                'post_status' => 'publish',
+            )
+        );
+        $query  = greenfarm_page_template_query($page_id, 'page-templates/about.php');
+        $robots = greenfarm_render_robots($query);
+
+        greenfarm_expect(! str_contains($robots, 'noindex'), 'published core Page must remain indexable');
     }
 );
 
