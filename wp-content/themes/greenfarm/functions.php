@@ -34,6 +34,15 @@ function greenfarm_setup(): void
 add_action('after_setup_theme', 'greenfarm_setup');
 
 /**
+ * Expose the native excerpt field for editor-managed Pages.
+ */
+function greenfarm_enable_page_excerpt(): void
+{
+    add_post_type_support('page', 'excerpt');
+}
+add_action('init', 'greenfarm_enable_page_excerpt');
+
+/**
  * Load global theme styles.
  */
 function greenfarm_enqueue_assets(): void
@@ -74,7 +83,16 @@ function greenfarm_enqueue_assets(): void
         );
     }
 
-    if (greenfarm_is_blog_view() || greenfarm_is_content_model_view() || is_front_page()) {
+    if (greenfarm_is_core_page_view()) {
+        wp_enqueue_style(
+            'greenfarm-core-pages',
+            get_template_directory_uri() . '/assets/css/core-pages.css',
+            array('greenfarm-style'),
+            $version
+        );
+    }
+
+    if (greenfarm_is_blog_view() || greenfarm_is_content_model_view() || greenfarm_is_core_page_view() || is_front_page()) {
         wp_enqueue_script(
             'greenfarm-motion',
             get_template_directory_uri() . '/assets/js/motion.js',
@@ -121,6 +139,14 @@ function greenfarm_is_content_model_view(): bool
 }
 
 /**
+ * Determine whether the current Page uses a GreenFarm core Page template.
+ */
+function greenfarm_is_core_page_view(): bool
+{
+    return is_page_template(array('page-templates/about.php', 'page-templates/contact.php'));
+}
+
+/**
  * Return the configured Posts page URL with a stable fallback.
  */
 function greenfarm_get_blog_url(): string
@@ -128,6 +154,28 @@ function greenfarm_get_blog_url(): string
     $posts_page_id = (int) get_option('page_for_posts');
 
     return $posts_page_id > 0 ? (string) get_permalink($posts_page_id) : home_url('/blog/');
+}
+
+/**
+ * Render essential public routes when no Primary navigation is assigned.
+ *
+ * @param array<string, mixed> $args WordPress menu arguments.
+ */
+function greenfarm_primary_menu_fallback(array $args = array()): void
+{
+    $items = array(
+        array('label' => __('Products', 'greenfarm'), 'url' => home_url('/products/')),
+        array('label' => __('Farm Stories', 'greenfarm'), 'url' => home_url('/farm-stories/')),
+        array('label' => __('Journal', 'greenfarm'), 'url' => greenfarm_get_blog_url()),
+        array('label' => __('About GreenFarm', 'greenfarm'), 'url' => home_url('/about/')),
+        array('label' => __('Contact', 'greenfarm'), 'url' => home_url('/contact/')),
+    );
+
+    echo '<ul class="menu">';
+    foreach ($items as $item) {
+        printf('<li><a href="%1$s">%2$s</a></li>', esc_url($item['url']), esc_html($item['label']));
+    }
+    echo '</ul>';
 }
 
 /**

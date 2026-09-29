@@ -29,6 +29,8 @@ $greenfarm_image_context = isset($greenfarm_image_sizes[$greenfarm_card_args['im
     ? $greenfarm_card_args['image_context']
     : 'archive';
 $greenfarm_availability  = (string) get_post_meta(get_the_ID(), 'greenfarm_availability', true);
+$greenfarm_origin        = trim((string) get_post_meta(get_the_ID(), 'greenfarm_origin', true));
+$greenfarm_harvest       = trim((string) get_post_meta(get_the_ID(), 'greenfarm_harvest_season', true));
 $greenfarm_label         = function_exists('greenfarm_core_get_availability_label')
     ? greenfarm_core_get_availability_label($greenfarm_availability)
     : '';
@@ -44,6 +46,11 @@ $greenfarm_label         = function_exists('greenfarm_core_get_availability_labe
             <p class="<?php echo esc_attr($greenfarm_card_class); ?>__availability"><?php echo esc_html($greenfarm_label); ?></p>
         <?php endif; ?>
         <<?php echo $greenfarm_heading_level; ?>><a href="<?php the_permalink(); ?>"><?php the_title(); ?></a></<?php echo $greenfarm_heading_level; ?>>
+        <?php if ($greenfarm_origin || $greenfarm_harvest) : ?>
+            <p class="<?php echo esc_attr($greenfarm_card_class); ?>__details">
+                <?php echo esc_html(implode(' · ', array_filter(array($greenfarm_origin, $greenfarm_harvest)))); ?>
+            </p>
+        <?php endif; ?>
         <?php if (has_excerpt()) : ?>
             <p><?php echo esc_html(get_the_excerpt()); ?></p>
         <?php endif; ?>

@@ -86,6 +86,17 @@ function greenfarm_render_template(string $template, WP_Query $query): string
 }
 
 /**
+ * Render the site header using the active theme's real menu state.
+ */
+function greenfarm_render_header(): string
+{
+    ob_start();
+    require dirname(__DIR__) . '/header.php';
+
+    return (string) ob_get_clean();
+}
+
+/**
  * Build the static Page query used by front-page template tests.
  */
 function greenfarm_front_page_query(int $page_id): WP_Query
@@ -99,6 +110,68 @@ function greenfarm_front_page_query(int $page_id): WP_Query
     $query->queried_object_id = $page_id;
 
     return $query;
+}
+
+/**
+ * Build a native Page query with an assigned custom template.
+ */
+function greenfarm_page_template_query(int $page_id, string $template): WP_Query
+{
+    update_post_meta($page_id, '_wp_page_template', $template);
+
+    $query                    = new WP_Query(array('page_id' => $page_id));
+    $query->is_page           = true;
+    $query->is_singular       = true;
+    $query->is_home           = false;
+    $query->is_front_page     = false;
+    $query->queried_object    = get_post($page_id);
+    $query->queried_object_id = $page_id;
+
+    return $query;
+}
+
+/**
+ * Create an image attachment fixture with responsive metadata.
+ */
+function greenfarm_test_image(string $name, int $parent_id = 0): int
+{
+    $filename = sanitize_file_name($name) . '.jpg';
+    $file     = '2026/09/' . $filename;
+    $id       = wp_insert_attachment(
+        array(
+            'post_title'     => $name,
+            'post_status'    => 'inherit',
+            'post_mime_type' => 'image/jpeg',
+            'guid'           => home_url('/wp-content/uploads/' . $file),
+        ),
+        $file,
+        $parent_id
+    );
+    update_post_meta($id, '_wp_attached_file', $file);
+    wp_update_attachment_metadata(
+        $id,
+        array(
+            'width'  => 1600,
+            'height' => 900,
+            'file'   => $file,
+            'sizes'  => array(
+                'medium' => array(
+                    'file'      => sanitize_file_name($name) . '-300x169.jpg',
+                    'width'     => 300,
+                    'height'    => 169,
+                    'mime-type' => 'image/jpeg',
+                ),
+                'large' => array(
+                    'file'      => sanitize_file_name($name) . '-1024x576.jpg',
+                    'width'     => 1024,
+                    'height'    => 576,
+                    'mime-type' => 'image/jpeg',
+                ),
+            ),
+        )
+    );
+
+    return $id;
 }
 
 /**
@@ -121,6 +194,77 @@ function greenfarm_render_robots(WP_Query $query): string
     $wp_the_query = $previous_wp_query;
 
     return $robots;
+}
+
+/**
+ * Read visible breadcrumb labels from rendered theme markup.
+ *
+ * @return array<int, string>
+ */
+function greenfarm_breadcrumb_labels(string $html): array
+{
+    if (! preg_match('/<nav class="breadcrumbs".*?<ol>(.*?)<\/ol>.*?<\/nav>/s', $html, $nav)) {
+        return array();
+    }
+
+    if (! preg_match_all('/<li>\s*(?:<a\b[^>]*>|<span\b[^>]*>)(.*?)(?:<\/a>|<\/span>)\s*<\/li>/s', $nav[1], $items)) {
+        return array();
+    }
+
+    return array_map(
+        static fn (string $label): string => html_entity_decode(trim(wp_strip_all_tags($label)), ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+        $items[1]
+    );
+}
+
+/**
+ * Read BreadcrumbList data from rendered theme markup.
+ *
+ * @return array<string, mixed>
+ */
+function greenfarm_breadcrumb_schema(string $html): array
+{
+    if (! preg_match('/<script type="application\/ld\+json">(.*?)<\/script>/s', $html, $matches)) {
+        return array();
+    }
+
+    $schema = json_decode($matches[1], true);
+
+    return is_array($schema) ? $schema : array();
+}
+
+/**
+ * Capture conditional public assets for a Page query.
+ *
+ * @return array<string, bool>
+ */
+function greenfarm_page_assets(WP_Query $query): array
+{
+    global $wp_query, $wp_the_query;
+
+    $previous_query    = $wp_query;
+    $previous_wp_query = $wp_the_query;
+    $wp_query          = $query;
+    $wp_the_query      = $query;
+
+    foreach (array('greenfarm-blog', 'greenfarm-home', 'greenfarm-content-models', 'greenfarm-core-pages') as $handle) {
+        wp_dequeue_style($handle);
+    }
+    wp_dequeue_script('greenfarm-motion');
+    greenfarm_enqueue_assets();
+
+    $assets = array(
+        'blog_css'    => wp_style_is('greenfarm-blog', 'enqueued'),
+        'home_css'    => wp_style_is('greenfarm-home', 'enqueued'),
+        'content_css' => wp_style_is('greenfarm-content-models', 'enqueued'),
+        'core_css'    => wp_style_is('greenfarm-core-pages', 'enqueued'),
+        'motion'      => wp_script_is('greenfarm-motion', 'enqueued'),
+    );
+
+    $wp_query     = $previous_query;
+    $wp_the_query = $previous_wp_query;
+
+    return $assets;
 }
 
 /**
@@ -156,6 +300,39 @@ function greenfarm_render_related_posts(int $post_id): string
 }
 
 greenfarm_test(
+    'primary navigation falls back to GreenFarm routes and honors an assigned menu',
+    static function (): void {
+        set_theme_mod('nav_menu_locations', array());
+
+        $html = greenfarm_render_header();
+
+        greenfarm_expect(str_contains($html, 'href="' . home_url('/products/') . '"'), 'fallback navigation must link to Products');
+        greenfarm_expect(str_contains($html, 'href="' . home_url('/farm-stories/') . '"'), 'fallback navigation must link to Farm Stories');
+        greenfarm_expect(str_contains($html, 'href="' . home_url('/about/') . '"'), 'fallback navigation must link to About');
+        greenfarm_expect(str_contains($html, 'href="' . home_url('/contact/') . '"'), 'fallback navigation must link to Contact');
+        greenfarm_expect(str_contains($html, 'href="' . home_url('/blog/') . '"'), 'fallback navigation must link to the Journal');
+
+        $menu_id = wp_create_nav_menu('GreenFarm test navigation');
+        wp_update_nav_menu_item(
+            $menu_id,
+            0,
+            array(
+                'menu-item-title'  => 'Seasonal collection',
+                'menu-item-url'    => home_url('/seasonal/'),
+                'menu-item-status' => 'publish',
+            )
+        );
+        set_theme_mod('nav_menu_locations', array('primary' => $menu_id));
+        $assigned_html = greenfarm_render_header();
+
+        greenfarm_expect(str_contains($assigned_html, 'href="' . home_url('/seasonal/') . '"'), 'assigned Primary menu must render its own item');
+        greenfarm_expect(! str_contains($assigned_html, 'href="' . home_url('/farm-stories/') . '"'), 'assigned Primary menu must replace the fallback');
+
+        set_theme_mod('nav_menu_locations', array());
+    }
+);
+
+greenfarm_test(
     'blog archive card links the post title and has one page heading',
     static function (): void {
         $post_id = wp_insert_post(
@@ -175,6 +352,9 @@ greenfarm_test(
             1 === substr_count($html, '<h1'),
             'blog archive must render exactly one H1; got ' . substr_count($html, '<h1') . ' in ' . substr(strip_tags($html), 0, 180)
         );
+        greenfarm_expect(str_contains($html, 'journal-archive--editorial'), 'Journal archive must expose its editorial layout hook');
+        $blog_css = (string) file_get_contents(__DIR__ . '/../assets/css/blog.css');
+        greenfarm_expect((bool) preg_match('/\\.journal-archive--editorial \\.post-card:first-child\\s*\\{[^}]*grid-column:\\s*1\\s*\\/\\s*-1;/s', $blog_css), 'Journal must promote its lead article across the grid');
         greenfarm_expect(str_contains($html, 'Keeping Herbs Fresh'), 'post title is missing');
         greenfarm_expect(str_contains($html, get_permalink($post_id)), 'post permalink is missing');
         greenfarm_expect(str_contains($html, '<h2 class="post-card__title">'), 'archive post cards must keep H2 headings');
@@ -387,7 +567,7 @@ greenfarm_test(
 );
 
 greenfarm_test(
-    '404 renders one recovery heading and noindex robots',
+    '404 renders a focused recovery experience and noindex robots',
     static function (): void {
         $query             = new WP_Query(array('p' => 99999999));
         $query->is_404     = true;
@@ -398,6 +578,9 @@ greenfarm_test(
 
         greenfarm_expect(1 === substr_count($html, '<h1'), '404 must render exactly one H1');
         greenfarm_expect(str_contains($html, 'Page not found'), '404 recovery message is missing');
+        greenfarm_expect(str_contains($html, 'class="error-hero"'), '404 must render the dedicated recovery hero');
+        greenfarm_expect(str_contains($html, 'href="' . home_url('/') . '"'), '404 must offer a route back to the homepage');
+        greenfarm_expect(str_contains($html, 'href="' . greenfarm_get_blog_url() . '"'), '404 must retain a Journal recovery route');
         greenfarm_expect(str_contains($robots, 'noindex'), '404 robots must include noindex');
     }
 );
@@ -476,7 +659,7 @@ greenfarm_test(
         greenfarm_expect(str_contains($html, 'Meet the people and practices behind every harvest.'), 'Page content is missing from the introduction');
         greenfarm_expect(str_contains($html, 'A farm rooted in care'), 'approved introduction heading is missing');
         greenfarm_expect(str_contains($html, 'Responsible methods'), 'approved farm proof points are missing');
-        greenfarm_expect(str_contains($html, home_url('/products/')), 'Products CTA is missing');
+        greenfarm_expect(str_contains($html, home_url('/farm-stories/')), 'Farm Stories CTA is missing');
         greenfarm_expect(str_contains($html, home_url('/about/')), 'About CTA is missing');
         greenfarm_expect(! preg_match('/<img[^>]+src=(?:""|\'\')/i', $html), 'front page must not output an image with an empty source');
     }
@@ -630,6 +813,12 @@ greenfarm_test(
         greenfarm_expect(str_contains($html, get_permalink($product_ids[4])), 'Product canonical permalink is missing');
         greenfarm_expect(str_contains($html, get_permalink($story_ids[2])), 'Farm Story canonical permalink is missing');
         greenfarm_expect(str_contains($html, (string) get_term_link($term_ids[0], 'product_category')), 'Product category canonical link is missing');
+        greenfarm_expect(str_contains($html, 'home-stories--featured'), 'homepage must identify its editorial Farm Story section');
+        greenfarm_expect(str_contains($html, 'href="' . home_url('/farm-stories/') . '"'), 'homepage hero must lead visitors to Farm Stories');
+        greenfarm_expect(
+            strpos($html, 'home-stories--featured') < strpos($html, 'home-products'),
+            'homepage Farm Stories must lead into the seasonal product strip'
+        );
         greenfarm_expect(1 === substr_count($html, '<h1'), 'optional sections must preserve the single Page H1');
         greenfarm_expect($page_id === $post_before_proof, 'secondary queries must restore the homepage Page context');
 
@@ -681,6 +870,195 @@ greenfarm_test(
         greenfarm_expect(str_contains($html, home_url('/contact/')), 'final Contact CTA is missing');
         greenfarm_expect(! str_contains($html, '<form'), 'homepage must not render a fake newsletter form');
         greenfarm_expect($page_id === $post_before_proof, 'Latest Articles query must restore the homepage Page context');
+    }
+);
+
+greenfarm_test(
+    'Theme exposes the native Page excerpt field',
+    static function (): void {
+        greenfarm_expect(function_exists('greenfarm_enable_page_excerpt'), 'Page excerpt setup function is missing');
+        greenfarm_enable_page_excerpt();
+        greenfarm_expect(post_type_supports('page', 'excerpt'), 'Page excerpt support is missing');
+    }
+);
+
+greenfarm_test(
+    'About template renders native Page fields and a bounded continuation CTA',
+    static function (): void {
+        $page_id = wp_insert_post(
+            array(
+                'post_type'    => 'page',
+                'post_title'   => 'GreenFarm & Cộng đồng',
+                'post_excerpt' => 'Canh tác có trách nhiệm từ đất khỏe.',
+                'post_content' => '<h2>Câu chuyện của chúng tôi</h2><p>Nội dung do biên tập viên quản lý.</p>',
+                'post_status'  => 'publish',
+            )
+        );
+        set_post_thumbnail($page_id, greenfarm_test_image('about-field', $page_id));
+
+        $templates = wp_get_theme()->get_page_templates(null, 'page');
+        $html      = greenfarm_render_template(
+            'page-templates/about.php',
+            greenfarm_page_template_query($page_id, 'page-templates/about.php')
+        );
+
+        greenfarm_expect('GreenFarm About' === ($templates['page-templates/about.php'] ?? ''), 'About template header is missing');
+        greenfarm_expect(1 === substr_count($html, '<h1'), 'About must render exactly one H1');
+        greenfarm_expect(str_contains($html, esc_html(get_the_title($page_id))), 'About title is missing or unsafe');
+        greenfarm_expect(str_contains($html, 'Canh tác có trách nhiệm từ đất khỏe.'), 'explicit Page excerpt is missing');
+        greenfarm_expect(str_contains($html, '<h2>Câu chuyện của chúng tôi</h2>'), 'native Page blocks are missing');
+        greenfarm_expect(str_contains($html, 'width="1600"'), 'featured image width is missing');
+        greenfarm_expect(str_contains($html, 'height="900"'), 'featured image height is missing');
+        greenfarm_expect(str_contains($html, 'srcset='), 'featured image srcset is missing');
+        greenfarm_expect(str_contains($html, 'sizes='), 'featured image sizes are missing');
+        greenfarm_expect(str_contains($html, home_url('/products/')), 'About Products CTA is missing');
+        greenfarm_expect(str_contains($html, home_url('/contact/')), 'About Contact CTA is missing');
+    }
+);
+
+greenfarm_test(
+    'Contact template renders editor-owned contact blocks without manufactured facts',
+    static function (): void {
+        $page_id = wp_insert_post(
+            array(
+                'post_type'    => 'page',
+                'post_title'   => 'Liên hệ GreenFarm',
+                'post_excerpt' => 'Kết nối trực tiếp với GreenFarm.',
+                'post_content' => '<h2>Thông tin liên hệ</h2><div class="wp-block-buttons"><div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="mailto:qa-contact@greenfarm.test">Gửi email</a></div></div>',
+                'post_status'  => 'publish',
+            )
+        );
+
+        $templates = wp_get_theme()->get_page_templates(null, 'page');
+        $html      = greenfarm_render_template(
+            'page-templates/contact.php',
+            greenfarm_page_template_query($page_id, 'page-templates/contact.php')
+        );
+
+        greenfarm_expect('GreenFarm Contact' === ($templates['page-templates/contact.php'] ?? ''), 'Contact template header is missing');
+        greenfarm_expect(1 === substr_count($html, '<h1'), 'Contact must render exactly one H1');
+        greenfarm_expect(str_contains($html, '<h2>Thông tin liên hệ</h2>'), 'Contact Page blocks are missing');
+        greenfarm_expect(str_contains($html, 'mailto:qa-contact@greenfarm.test'), 'editor-owned email action is missing');
+        greenfarm_expect(! str_contains($html, '<form'), 'Contact template must not manufacture a form');
+        greenfarm_expect(! str_contains($html, 'core-page-contact-card'), 'Contact template must not manufacture a contact card');
+    }
+);
+
+greenfarm_test(
+    'Core Page templates omit optional fields safely',
+    static function (): void {
+        $page_id = wp_insert_post(
+            array(
+                'post_type'    => 'page',
+                'post_title'   => 'GreenFarm không có ảnh',
+                'post_excerpt' => '',
+                'post_content' => '<h2>Nội dung chính</h2><p>Body-only summary must stay in the body.</p>',
+                'post_status'  => 'publish',
+            )
+        );
+        update_post_meta($page_id, '_thumbnail_id', 99999999);
+
+        $html = greenfarm_render_template(
+            'page-templates/contact.php',
+            greenfarm_page_template_query($page_id, 'page-templates/contact.php')
+        );
+
+        greenfarm_expect(! str_contains($html, 'core-page-hero__summary'), 'empty manual excerpt must not generate a summary');
+        greenfarm_expect(! str_contains($html, 'core-page-hero__media'), 'invalid featured image must not leave a media wrapper');
+        greenfarm_expect(! preg_match('/<img[^>]+src=(?:""|\'\')/i', $html), 'template must not render an empty image source');
+        greenfarm_expect(1 === substr_count($html, 'Body-only summary must stay in the body.'), 'body content must render once and never become an excerpt');
+    }
+);
+
+greenfarm_test(
+    'Core Page breadcrumb matches its safe BreadcrumbList data',
+    static function (): void {
+        $page_id = wp_insert_post(
+            array(
+                'post_type'   => 'page',
+                'post_title'  => 'GreenFarm & "Đất lành"',
+                'post_status' => 'publish',
+            )
+        );
+        $html = greenfarm_render_template(
+            'page-templates/about.php',
+            greenfarm_page_template_query($page_id, 'page-templates/about.php')
+        );
+
+        $visible = greenfarm_breadcrumb_labels($html);
+        $schema  = greenfarm_breadcrumb_schema($html);
+        $items   = $schema['itemListElement'] ?? array();
+        $names   = array_column($items, 'name');
+
+        greenfarm_expect(array('Home', 'GreenFarm & “Đất lành”') === $visible, 'visible core Page breadcrumb is incomplete or unsafe');
+        greenfarm_expect('BreadcrumbList' === ($schema['@type'] ?? ''), 'BreadcrumbList schema is missing');
+        greenfarm_expect(
+            $visible === $names,
+            'visible and structured breadcrumb labels differ: ' . wp_json_encode(array('visible' => $visible, 'schema' => $names))
+        );
+        greenfarm_expect(home_url('/') === ($items[0]['item'] ?? ''), 'Home schema item URL is missing');
+        greenfarm_expect(! isset($items[1]['item']), 'current Page schema item must not have a redundant URL');
+    }
+);
+
+greenfarm_test(
+    'Published core Pages keep WordPress index defaults',
+    static function (): void {
+        $page_id = wp_insert_post(
+            array(
+                'post_type'   => 'page',
+                'post_title'  => 'Về GreenFarm',
+                'post_status' => 'publish',
+            )
+        );
+        $query  = greenfarm_page_template_query($page_id, 'page-templates/about.php');
+        $robots = greenfarm_render_robots($query);
+
+        greenfarm_expect(! str_contains($robots, 'noindex'), 'published core Page must remain indexable');
+    }
+);
+
+greenfarm_test(
+    'Core Page assets load only for the two dedicated templates',
+    static function (): void {
+        $about_id   = wp_insert_post(array('post_type' => 'page', 'post_title' => 'Asset About', 'post_status' => 'publish'));
+        $contact_id = wp_insert_post(array('post_type' => 'page', 'post_title' => 'Asset Contact', 'post_status' => 'publish'));
+        $default_id = wp_insert_post(array('post_type' => 'page', 'post_title' => 'Asset Default', 'post_status' => 'publish'));
+        $custom_id  = wp_insert_post(array('post_type' => 'page', 'post_title' => 'Asset Custom', 'post_status' => 'publish'));
+
+        $about = greenfarm_page_assets(greenfarm_page_template_query($about_id, 'page-templates/about.php'));
+        $contact = greenfarm_page_assets(greenfarm_page_template_query($contact_id, 'page-templates/contact.php'));
+        $default = greenfarm_page_assets(greenfarm_page_template_query($default_id, 'default'));
+        $custom = greenfarm_page_assets(greenfarm_page_template_query($custom_id, 'page-templates/unrelated.php'));
+
+        greenfarm_expect($about['core_css'] && $about['motion'], 'About must enqueue core-page CSS and motion');
+        greenfarm_expect($contact['core_css'] && $contact['motion'], 'Contact must enqueue core-page CSS and motion');
+        greenfarm_expect(! $default['core_css'] && ! $default['motion'], 'default Page must not enqueue core-page assets');
+        greenfarm_expect(! $custom['core_css'] && ! $custom['motion'], 'unrelated custom template must not enqueue core-page assets');
+        greenfarm_expect(! $about['blog_css'] && ! $about['home_css'] && ! $about['content_css'], 'About must not enqueue unrelated route styles');
+        greenfarm_expect(! $contact['blog_css'] && ! $contact['home_css'] && ! $contact['content_css'], 'Contact must not enqueue unrelated route styles');
+    }
+);
+
+greenfarm_test(
+    'Core Page templates omit an empty editor content region',
+    static function (): void {
+        $page_id = wp_insert_post(
+            array(
+                'post_type'    => 'page',
+                'post_title'   => 'About without body content',
+                'post_content' => '',
+                'post_status'  => 'publish',
+            )
+        );
+        $html = greenfarm_render_template(
+            'page-templates/about.php',
+            greenfarm_page_template_query($page_id, 'page-templates/about.php')
+        );
+
+        greenfarm_expect(! str_contains($html, 'core-page__content'), 'empty Page body must not leave a content wrapper');
+        greenfarm_expect(str_contains($html, 'core-page-hero'), 'empty Page body must retain its hero');
+        greenfarm_expect(str_contains($html, 'core-page-cta'), 'empty About body must retain its continuation CTA');
     }
 );
 

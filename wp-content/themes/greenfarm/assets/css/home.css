@@ -55,6 +55,7 @@
     line-height: 0.92;
     margin: 0;
     max-width: 12ch;
+    overflow-wrap: anywhere;
     text-wrap: balance;
 }
 
@@ -204,6 +205,10 @@
 .home-latest__grid {
     display: grid;
     gap: 1rem;
+}
+
+.home-stories--featured {
+    border-block: 1px solid var(--gf-border);
 }
 
 .home-category-card {
