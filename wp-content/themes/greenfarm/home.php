@@ -7,7 +7,7 @@
 
 get_header();
 ?>
-<main id="primary" class="site-main archive-view">
+<main id="primary" class="site-main archive-view journal-archive--editorial">
     <header class="archive-hero" data-reveal>
         <?php get_template_part('template-parts/breadcrumbs'); ?>
         <p class="eyebrow"><?php esc_html_e('Field notes and practical guides', 'greenfarm'); ?></p>
@@ -29,4 +29,3 @@ get_header();
 </main>
 <?php
 get_footer();
-

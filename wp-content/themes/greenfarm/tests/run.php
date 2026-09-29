@@ -352,6 +352,7 @@ greenfarm_test(
             1 === substr_count($html, '<h1'),
             'blog archive must render exactly one H1; got ' . substr_count($html, '<h1') . ' in ' . substr(strip_tags($html), 0, 180)
         );
+        greenfarm_expect(str_contains($html, 'journal-archive--editorial'), 'Journal archive must expose its editorial layout hook');
         greenfarm_expect(str_contains($html, 'Keeping Herbs Fresh'), 'post title is missing');
         greenfarm_expect(str_contains($html, get_permalink($post_id)), 'post permalink is missing');
         greenfarm_expect(str_contains($html, '<h2 class="post-card__title">'), 'archive post cards must keep H2 headings');
