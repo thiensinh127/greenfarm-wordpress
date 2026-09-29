@@ -353,6 +353,8 @@ greenfarm_test(
             'blog archive must render exactly one H1; got ' . substr_count($html, '<h1') . ' in ' . substr(strip_tags($html), 0, 180)
         );
         greenfarm_expect(str_contains($html, 'journal-archive--editorial'), 'Journal archive must expose its editorial layout hook');
+        $blog_css = (string) file_get_contents(__DIR__ . '/../assets/css/blog.css');
+        greenfarm_expect((bool) preg_match('/\\.journal-archive--editorial \\.post-card:first-child\\s*\\{[^}]*grid-column:\\s*1\\s*\\/\\s*-1;/s', $blog_css), 'Journal must promote its lead article across the grid');
         greenfarm_expect(str_contains($html, 'Keeping Herbs Fresh'), 'post title is missing');
         greenfarm_expect(str_contains($html, get_permalink($post_id)), 'post permalink is missing');
         greenfarm_expect(str_contains($html, '<h2 class="post-card__title">'), 'archive post cards must keep H2 headings');
@@ -657,7 +659,7 @@ greenfarm_test(
         greenfarm_expect(str_contains($html, 'Meet the people and practices behind every harvest.'), 'Page content is missing from the introduction');
         greenfarm_expect(str_contains($html, 'A farm rooted in care'), 'approved introduction heading is missing');
         greenfarm_expect(str_contains($html, 'Responsible methods'), 'approved farm proof points are missing');
-        greenfarm_expect(str_contains($html, home_url('/products/')), 'Products CTA is missing');
+        greenfarm_expect(str_contains($html, home_url('/farm-stories/')), 'Farm Stories CTA is missing');
         greenfarm_expect(str_contains($html, home_url('/about/')), 'About CTA is missing');
         greenfarm_expect(! preg_match('/<img[^>]+src=(?:""|\'\')/i', $html), 'front page must not output an image with an empty source');
     }
@@ -812,6 +814,7 @@ greenfarm_test(
         greenfarm_expect(str_contains($html, get_permalink($story_ids[2])), 'Farm Story canonical permalink is missing');
         greenfarm_expect(str_contains($html, (string) get_term_link($term_ids[0], 'product_category')), 'Product category canonical link is missing');
         greenfarm_expect(str_contains($html, 'home-stories--featured'), 'homepage must identify its editorial Farm Story section');
+        greenfarm_expect(str_contains($html, 'href="' . home_url('/farm-stories/') . '"'), 'homepage hero must lead visitors to Farm Stories');
         greenfarm_expect(
             strpos($html, 'home-stories--featured') < strpos($html, 'home-products'),
             'homepage Farm Stories must lead into the seasonal product strip'

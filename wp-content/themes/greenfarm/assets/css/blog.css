@@ -429,3 +429,18 @@
     border-bottom: 1px solid rgba(168, 214, 68, 0.35);
 }
 
+@media (min-width: 64rem) {
+    .journal-archive--editorial .post-card:first-child {
+        display: grid;
+        grid-column: 1 / -1;
+        grid-template-columns: minmax(0, 1.2fr) minmax(18rem, 0.8fr);
+    }
+
+    .journal-archive--editorial .post-card:first-child .post-card__image {
+        aspect-ratio: 16 / 9;
+    }
+
+    .journal-archive--editorial .post-card:first-child .post-card__body {
+        align-self: center;
+    }
+}

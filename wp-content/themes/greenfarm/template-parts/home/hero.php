@@ -20,8 +20,8 @@ $greenfarm_image   = get_post_thumbnail_id();
             ?>
         </p>
         <div class="home-actions">
-            <a class="home-button home-button--primary" href="<?php echo esc_url(home_url('/products/')); ?>">
-                <?php esc_html_e('Explore our products', 'greenfarm'); ?>
+            <a class="home-button home-button--primary" href="<?php echo esc_url(home_url('/farm-stories/')); ?>">
+                <?php esc_html_e('Read the latest from the fields', 'greenfarm'); ?>
             </a>
         </div>
     </div>

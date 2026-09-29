@@ -253,6 +253,8 @@ greenfarm_content_test(
             )
         );
         update_post_meta($product_id, 'greenfarm_availability', 'limited');
+        update_post_meta($product_id, 'greenfarm_origin', 'North Field');
+        update_post_meta($product_id, 'greenfarm_harvest_season', 'Early autumn');
 
         $html = greenfarm_content_render_card(
             'product-card',
@@ -267,6 +269,7 @@ greenfarm_content_test(
         greenfarm_content_expect(str_contains($html, '<h3'), 'requested H3 is missing');
         greenfarm_content_expect(str_contains($html, 'test-product-card'), 'requested card class is missing');
         greenfarm_content_expect(str_contains($html, 'Limited availability'), 'allowlisted availability label is missing');
+        greenfarm_content_expect(str_contains($html, 'North Field') && str_contains($html, 'Early autumn'), 'Product origin and harvest season are missing');
         greenfarm_content_expect(str_contains($html, 'Sweet roots from healthy soil.'), 'Product excerpt is missing');
         greenfarm_content_expect(str_contains($html, get_permalink($product_id)), 'Product canonical link is missing');
         greenfarm_content_expect(! str_contains($html, '<img'), 'no-image Product must not output an image');
@@ -593,6 +596,18 @@ greenfarm_content_test(
 );
 
 greenfarm_content_test(
+    'editorial archive CSS gives Stories a lead card hierarchy',
+    static function (): void {
+        $css = (string) file_get_contents(dirname(__DIR__) . '/assets/css/content-models.css');
+
+        greenfarm_content_expect(
+            (bool) preg_match('/\\.story-archive--editorial \\.story-card:first-child\\s*\\{[^}]*grid-column:\\s*1\\s*\\/\\s*-1;/s', $css),
+            'Farm Story archive must promote its first card across the grid'
+        );
+    }
+);
+
+greenfarm_content_test(
     'empty business archives render accessible recovery content and noindex follow robots',
     static function (): void {
         $contexts = array(
@@ -702,6 +717,7 @@ greenfarm_content_test(
         greenfarm_content_expect(str_contains($html, 'North Field') && str_contains($html, 'Autumn'), 'populated Product facts are missing');
         greenfarm_content_expect(! str_contains($html, 'Farming method'), 'empty Product fact must be omitted');
         greenfarm_content_expect(str_contains($html, 'Limited availability'), 'allowlisted Product availability label is missing');
+        greenfarm_content_expect(str_contains($html, home_url('/contact/')), 'Product single must offer a low-pressure Contact path');
         greenfarm_content_expect(! str_contains($html, '<script>alert(1)</script>'), 'storage instructions were not escaped');
         greenfarm_content_expect(str_contains($html, 'Keep cool &lt;script&gt;alert(1)&lt;/script&gt;'), 'escaped storage instructions are missing');
         greenfarm_content_expect(str_contains($html, get_term_link($term_id, 'product_category')), 'Product Category canonical link is missing');

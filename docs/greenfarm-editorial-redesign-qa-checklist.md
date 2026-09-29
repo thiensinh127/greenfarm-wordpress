@@ -1,13 +1,13 @@
 # GreenFarm Editorial Redesign QA
 
-QA date: 2026-09-29  
+QA date: 2026-09-29
 Environment: WordPress Playground CLI 3.1.55, WordPress latest, PHP 8.3, GreenFarm theme, and `greenfarm-core` activated.
 
 ## Automated checks
 
 - [x] Theme integration suite: 30 tests, 0 failures.
 - [x] GreenFarm Core plugin suite: 13 tests, 0 failures.
-- [x] Theme/plugin content integration suite: 12 tests, 0 failures.
+- [x] Theme/plugin content integration suite: 13 tests, 0 failures.
 - [x] JavaScript suite: 6 tests, 0 failures.
 - [x] Theme PHP tree: 40 files parsed without syntax errors.
 - [x] Plugin PHP tree: 5 files parsed without syntax errors.

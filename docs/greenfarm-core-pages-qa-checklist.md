@@ -1,6 +1,6 @@
 # GreenFarm Core Pages QA Checklist
 
-QA date: 2026-09-28  
+QA date: 2026-09-28
 Environment: WordPress Playground CLI 3.1.55, WordPress latest, PHP 8.3 runtime, GreenFarm theme 1.0.0.
 
 ## Automated verification

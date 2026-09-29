@@ -166,9 +166,9 @@ function greenfarm_primary_menu_fallback(array $args = array()): void
     $items = array(
         array('label' => __('Products', 'greenfarm'), 'url' => home_url('/products/')),
         array('label' => __('Farm Stories', 'greenfarm'), 'url' => home_url('/farm-stories/')),
+        array('label' => __('Journal', 'greenfarm'), 'url' => greenfarm_get_blog_url()),
         array('label' => __('About GreenFarm', 'greenfarm'), 'url' => home_url('/about/')),
         array('label' => __('Contact', 'greenfarm'), 'url' => home_url('/contact/')),
-        array('label' => __('Journal', 'greenfarm'), 'url' => greenfarm_get_blog_url()),
     );
 
     echo '<ul class="menu">';

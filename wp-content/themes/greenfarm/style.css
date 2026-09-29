@@ -91,6 +91,9 @@ select {
 
 .primary-navigation a,
 .site-footer a {
+    align-items: center;
+    display: inline-flex;
+    min-height: 2.75rem;
     text-decoration-thickness: 1px;
     text-underline-offset: 0.3em;
 }
@@ -155,9 +158,7 @@ a {
 
 .error-view {
     align-items: center;
-    background:
-        radial-gradient(circle at 88% 10%, rgba(168, 214, 68, 0.22), transparent 26rem),
-        var(--gf-forest);
+    background: var(--gf-forest);
     display: grid;
     min-height: calc(100svh - 5rem);
     overflow: hidden;

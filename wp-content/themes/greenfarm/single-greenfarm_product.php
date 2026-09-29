@@ -77,6 +77,13 @@ get_header();
             </div>
 
             <?php get_template_part('template-parts/product', 'gallery'); ?>
+
+            <section class="product-detail__contact" data-reveal aria-labelledby="product-contact-title">
+                <p class="eyebrow"><?php esc_html_e('From our field to your table', 'greenfarm'); ?></p>
+                <h2 id="product-contact-title"><?php esc_html_e('Want to know more about this harvest?', 'greenfarm'); ?></h2>
+                <p><?php esc_html_e('Ask our team about availability, growing practices, or where to find it.', 'greenfarm'); ?></p>
+                <a class="button" href="<?php echo esc_url(home_url('/contact/')); ?>"><?php esc_html_e('Contact GreenFarm', 'greenfarm'); ?></a>
+            </section>
         </article>
 
         <?php

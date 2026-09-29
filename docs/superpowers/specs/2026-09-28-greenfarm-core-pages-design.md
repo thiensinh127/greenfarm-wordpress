@@ -1,7 +1,7 @@
 # GreenFarm Core Pages Design
 
-**Status:** Approved conversational design, ready for implementation planning  
-**Date:** 2026-09-28  
+**Status:** Approved conversational design, ready for implementation planning
+**Date:** 2026-09-28
 **Scope:** Native WordPress About and Contact pages for the GreenFarm theme
 
 ## 1. Objective
