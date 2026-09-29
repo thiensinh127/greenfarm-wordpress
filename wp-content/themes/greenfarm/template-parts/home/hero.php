@@ -23,9 +23,6 @@ $greenfarm_image   = get_post_thumbnail_id();
             <a class="home-button home-button--primary" href="<?php echo esc_url(home_url('/products/')); ?>">
                 <?php esc_html_e('Explore our products', 'greenfarm'); ?>
             </a>
-            <a class="home-button home-button--secondary" href="<?php echo esc_url(home_url('/about/')); ?>">
-                <?php esc_html_e('Meet GreenFarm', 'greenfarm'); ?>
-            </a>
         </div>
     </div>
 

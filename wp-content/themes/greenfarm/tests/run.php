@@ -810,6 +810,11 @@ greenfarm_test(
         greenfarm_expect(str_contains($html, get_permalink($product_ids[4])), 'Product canonical permalink is missing');
         greenfarm_expect(str_contains($html, get_permalink($story_ids[2])), 'Farm Story canonical permalink is missing');
         greenfarm_expect(str_contains($html, (string) get_term_link($term_ids[0], 'product_category')), 'Product category canonical link is missing');
+        greenfarm_expect(str_contains($html, 'home-stories--featured'), 'homepage must identify its editorial Farm Story section');
+        greenfarm_expect(
+            strpos($html, 'home-stories--featured') < strpos($html, 'home-products'),
+            'homepage Farm Stories must lead into the seasonal product strip'
+        );
         greenfarm_expect(1 === substr_count($html, '<h1'), 'optional sections must preserve the single Page H1');
         greenfarm_expect($page_id === $post_before_proof, 'secondary queries must restore the homepage Page context');
 

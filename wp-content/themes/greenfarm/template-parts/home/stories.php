@@ -21,7 +21,7 @@ $greenfarm_stories = new WP_Query(
 
 if ($greenfarm_stories->have_posts()) :
     ?>
-    <section class="home-section home-stories" aria-labelledby="home-stories-title" data-reveal>
+    <section class="home-section home-stories home-stories--featured" aria-labelledby="home-stories-title" data-reveal>
         <div class="home-section__heading">
             <p class="home-eyebrow"><?php esc_html_e('Notes from the field', 'greenfarm'); ?></p>
             <h2 id="home-stories-title"><?php esc_html_e('Farm stories', 'greenfarm'); ?></h2>

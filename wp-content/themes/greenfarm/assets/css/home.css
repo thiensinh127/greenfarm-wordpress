@@ -206,6 +206,10 @@
     gap: 1rem;
 }
 
+.home-stories--featured {
+    border-block: 1px solid var(--gf-border);
+}
+
 .home-category-card {
     align-items: center;
     background: var(--gf-paper);
