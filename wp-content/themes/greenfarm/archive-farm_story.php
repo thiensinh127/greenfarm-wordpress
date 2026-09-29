@@ -7,7 +7,7 @@
 
 get_header();
 ?>
-<main id="primary" class="site-main archive-view story-archive">
+<main id="primary" class="site-main archive-view story-archive story-archive--editorial">
     <header class="archive-hero" data-reveal>
         <?php get_template_part('template-parts/breadcrumbs'); ?>
         <p class="eyebrow"><?php esc_html_e('Notes from the field', 'greenfarm'); ?></p>

@@ -487,6 +487,7 @@ greenfarm_content_test(
 
         greenfarm_content_expect(1 === substr_count($html, '<h1'), 'Product archive must have one H1');
         greenfarm_content_expect(str_contains($html, '<h1>Products</h1>'), 'Product archive heading is not contextual');
+        greenfarm_content_expect(str_contains($html, 'product-archive--editorial'), 'Product archive must expose its editorial layout hook');
         greenfarm_content_expect(2 === preg_match_all('/<article[^>]*\bproduct-card\b[^>]*>.*?<h2\b/s', $html), 'Product archive must render two H2 cards from the main Loop');
         greenfarm_content_expect(str_contains($html, get_permalink($product_ids[2])), 'newest Product canonical link is missing');
         greenfarm_content_expect(! str_contains($html, 'Archive Draft Product'), 'draft Product leaked into its archive');
@@ -576,6 +577,7 @@ greenfarm_content_test(
 
         greenfarm_content_expect(1 === substr_count($html, '<h1'), 'Farm Story archive must have one H1');
         greenfarm_content_expect(str_contains($html, '<h1>Farm Stories</h1>'), 'Farm Story archive heading is not contextual');
+        greenfarm_content_expect(str_contains($html, 'story-archive--editorial'), 'Farm Story archive must expose its editorial layout hook');
         greenfarm_content_expect(2 === preg_match_all('/<article[^>]*\bstory-card\b[^>]*>.*?<h2\b/s', $html), 'Farm Story archive must render two H2 cards');
         greenfarm_content_expect(str_contains($html, get_permalink($story_ids[2])), 'newest Farm Story canonical link is missing');
         greenfarm_content_expect(! str_contains($html, 'Archive Draft Story'), 'draft Farm Story leaked into its archive');
