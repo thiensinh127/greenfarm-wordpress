@@ -42,6 +42,12 @@ body {
     line-height: 1.65;
 }
 
+h1,
+h2,
+h3 {
+    overflow-wrap: anywhere;
+}
+
 button,
 input,
 textarea,

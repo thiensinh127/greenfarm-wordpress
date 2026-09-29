@@ -311,6 +311,20 @@ greenfarm_test(
         greenfarm_expect(str_contains($html, 'href="' . home_url('/about/') . '"'), 'fallback navigation must link to About');
         greenfarm_expect(str_contains($html, 'href="' . home_url('/contact/') . '"'), 'fallback navigation must link to Contact');
         greenfarm_expect(str_contains($html, 'href="' . home_url('/blog/') . '"'), 'fallback navigation must link to the Journal');
+        greenfarm_expect(
+            strpos($html, 'href="' . home_url('/products/') . '"')
+            < strpos($html, 'href="' . home_url('/farm-stories/') . '"')
+            && strpos($html, 'href="' . home_url('/farm-stories/') . '"') < strpos($html, 'href="' . home_url('/blog/') . '"')
+            && strpos($html, 'href="' . home_url('/blog/') . '"') < strpos($html, 'href="' . home_url('/about/') . '"')
+            && strpos($html, 'href="' . home_url('/about/') . '"') < strpos($html, 'href="' . home_url('/contact/') . '"'),
+            'fallback navigation must keep the editorial route order'
+        );
+
+        $global_css = (string) file_get_contents(dirname(__DIR__) . '/style.css');
+        greenfarm_expect(
+            (bool) preg_match('/h1,[\s\S]*?h2,[\s\S]*?h3\s*\{[^}]*overflow-wrap:\s*anywhere;/s', $global_css),
+            'global headings must wrap long words at narrow widths'
+        );
 
         $menu_id = wp_create_nav_menu('GreenFarm test navigation');
         wp_update_nav_menu_item(
