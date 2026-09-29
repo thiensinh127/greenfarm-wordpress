@@ -86,6 +86,17 @@ function greenfarm_render_template(string $template, WP_Query $query): string
 }
 
 /**
+ * Render the site header using the active theme's real menu state.
+ */
+function greenfarm_render_header(): string
+{
+    ob_start();
+    require dirname(__DIR__) . '/header.php';
+
+    return (string) ob_get_clean();
+}
+
+/**
  * Build the static Page query used by front-page template tests.
  */
 function greenfarm_front_page_query(int $page_id): WP_Query
@@ -287,6 +298,39 @@ function greenfarm_render_related_posts(int $post_id): string
 
     return $html;
 }
+
+greenfarm_test(
+    'primary navigation falls back to GreenFarm routes and honors an assigned menu',
+    static function (): void {
+        set_theme_mod('nav_menu_locations', array());
+
+        $html = greenfarm_render_header();
+
+        greenfarm_expect(str_contains($html, 'href="' . home_url('/products/') . '"'), 'fallback navigation must link to Products');
+        greenfarm_expect(str_contains($html, 'href="' . home_url('/farm-stories/') . '"'), 'fallback navigation must link to Farm Stories');
+        greenfarm_expect(str_contains($html, 'href="' . home_url('/about/') . '"'), 'fallback navigation must link to About');
+        greenfarm_expect(str_contains($html, 'href="' . home_url('/contact/') . '"'), 'fallback navigation must link to Contact');
+        greenfarm_expect(str_contains($html, 'href="' . home_url('/blog/') . '"'), 'fallback navigation must link to the Journal');
+
+        $menu_id = wp_create_nav_menu('GreenFarm test navigation');
+        wp_update_nav_menu_item(
+            $menu_id,
+            0,
+            array(
+                'menu-item-title'  => 'Seasonal collection',
+                'menu-item-url'    => home_url('/seasonal/'),
+                'menu-item-status' => 'publish',
+            )
+        );
+        set_theme_mod('nav_menu_locations', array('primary' => $menu_id));
+        $assigned_html = greenfarm_render_header();
+
+        greenfarm_expect(str_contains($assigned_html, 'href="' . home_url('/seasonal/') . '"'), 'assigned Primary menu must render its own item');
+        greenfarm_expect(! str_contains($assigned_html, 'href="' . home_url('/farm-stories/') . '"'), 'assigned Primary menu must replace the fallback');
+
+        set_theme_mod('nav_menu_locations', array());
+    }
+);
 
 greenfarm_test(
     'blog archive card links the post title and has one page heading',
@@ -520,7 +564,7 @@ greenfarm_test(
 );
 
 greenfarm_test(
-    '404 renders one recovery heading and noindex robots',
+    '404 renders a focused recovery experience and noindex robots',
     static function (): void {
         $query             = new WP_Query(array('p' => 99999999));
         $query->is_404     = true;
@@ -531,6 +575,9 @@ greenfarm_test(
 
         greenfarm_expect(1 === substr_count($html, '<h1'), '404 must render exactly one H1');
         greenfarm_expect(str_contains($html, 'Page not found'), '404 recovery message is missing');
+        greenfarm_expect(str_contains($html, 'class="error-hero"'), '404 must render the dedicated recovery hero');
+        greenfarm_expect(str_contains($html, 'href="' . home_url('/') . '"'), '404 must offer a route back to the homepage');
+        greenfarm_expect(str_contains($html, 'href="' . greenfarm_get_blog_url() . '"'), '404 must retain a Journal recovery route');
         greenfarm_expect(str_contains($robots, 'noindex'), '404 robots must include noindex');
     }
 );

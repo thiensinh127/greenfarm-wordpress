@@ -27,11 +27,10 @@
                 array(
                     'theme_location' => 'primary',
                     'container'      => false,
-                    'fallback_cb'    => 'wp_page_menu',
+                    'fallback_cb'    => 'greenfarm_primary_menu_fallback',
                 )
             );
             ?>
         </nav>
     </div>
 </header>
-
