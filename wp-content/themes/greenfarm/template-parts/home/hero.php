@@ -8,7 +8,7 @@
 $greenfarm_summary = trim((string) get_the_excerpt());
 $greenfarm_image   = get_post_thumbnail_id();
 ?>
-<section class="home-hero">
+<section class="home-hero<?php echo $greenfarm_image ? ' home-hero--with-image' : ''; ?>">
     <div class="home-hero__content" data-reveal>
         <p class="home-eyebrow"><?php esc_html_e('Rooted in better farming', 'greenfarm'); ?></p>
         <h1><?php the_title(); ?></h1>

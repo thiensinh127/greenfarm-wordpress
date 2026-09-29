@@ -111,6 +111,7 @@
 }
 
 .home-hero__image {
+    filter: saturate(0.88) contrast(1.04);
     aspect-ratio: 16 / 10;
     object-fit: cover;
     width: 100%;
@@ -483,6 +484,14 @@
         min-height: min(48rem, calc(100vh - 4.5rem));
         padding-inline: max(3rem, calc((100vw - var(--gf-container)) / 2 + 3rem));
         place-items: center;
+    }
+
+    .home-hero--with-image {
+        grid-template-columns: minmax(0, 0.68fr) minmax(34rem, 1.32fr);
+    }
+
+    .home-hero--with-image .home-hero__image {
+        min-height: min(48rem, calc(100vh - 4.5rem));
     }
 
     .home-hero__content,

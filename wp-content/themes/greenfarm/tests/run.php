@@ -727,6 +727,7 @@ greenfarm_test(
         $html = greenfarm_render_template('front-page.php', greenfarm_front_page_query($page_id));
 
         greenfarm_expect(str_contains($html, 'fetchpriority="high"'), 'hero image must receive high fetch priority');
+        greenfarm_expect(str_contains($html, 'home-hero--with-image'), 'hero must expose its image-led composition when a Page image exists');
         greenfarm_expect(str_contains($html, 'loading="eager"'), 'hero image must load eagerly');
         greenfarm_expect((bool) preg_match('/<img[^>]+width="1600"[^>]+height="900"/i', $html), 'hero image intrinsic dimensions are missing');
         greenfarm_expect(str_contains($html, 'srcset='), 'hero image responsive srcset is missing');
