@@ -736,7 +736,7 @@ greenfarm_test(
 );
 
 greenfarm_test(
-    'front page presents values, an ordered farm process, and factual proof',
+    'front page does not manufacture unverified farm claims',
     static function (): void {
         $page_id = wp_insert_post(
             array(
@@ -747,11 +747,8 @@ greenfarm_test(
         );
         $html = greenfarm_render_template('front-page.php', greenfarm_front_page_query($page_id));
 
-        greenfarm_expect(3 === substr_count($html, 'home-value-card'), 'homepage must render exactly three value cards');
-        greenfarm_expect((bool) preg_match('/<ol[^>]*>.*Grow.*Harvest.*Prepare.*Share.*<\/ol>/s', $html), 'farm process must be an ordered Grow, Harvest, Prepare, Share sequence');
-        greenfarm_expect(str_contains($html, 'Seasonal harvests'), 'factual seasonal proof is missing');
-        greenfarm_expect(str_contains($html, 'Clear growing information'), 'factual growing-information proof is missing');
-        greenfarm_expect(str_contains($html, 'Practical farm education'), 'factual education proof is missing');
+        greenfarm_expect(! str_contains($html, 'home-value-card'), 'homepage must not manufacture value claims');
+        greenfarm_expect(! str_contains($html, 'Seasonal harvests'), 'homepage must not manufacture seasonal proof');
         greenfarm_expect(! str_contains($html, '"@type":"Review"'), 'homepage must not emit unverified Review schema');
         greenfarm_expect(1 === substr_count($html, '<h1'), 'values and process sections must not add another H1');
     }
@@ -810,13 +807,13 @@ greenfarm_test(
         $draft_story = wp_insert_post(array('post_type' => 'farm_story', 'post_title' => 'Homepage Draft Story', 'post_status' => 'draft'));
 
         $page_id               = wp_insert_post(array('post_type' => 'page', 'post_title' => 'Business Home', 'post_status' => 'publish'));
-        $post_before_proof     = 0;
-        $capture_page_context  = static function () use (&$post_before_proof): void {
-            $post_before_proof = get_the_ID();
+        $post_before_cta       = 0;
+        $capture_page_context  = static function () use (&$post_before_cta): void {
+            $post_before_cta = get_the_ID();
         };
-        add_action('get_template_part_template-parts/home/proof', $capture_page_context);
+        add_action('get_template_part_template-parts/home/cta', $capture_page_context);
         $html = greenfarm_render_template('front-page.php', greenfarm_front_page_query($page_id));
-        remove_action('get_template_part_template-parts/home/proof', $capture_page_context);
+        remove_action('get_template_part_template-parts/home/cta', $capture_page_context);
 
         greenfarm_expect(4 === substr_count($html, 'class="home-category-card"'), 'homepage must limit Product categories to four');
         greenfarm_expect(4 === preg_match_all('/<article[^>]+class="[^"]*\bhome-product-card\b[^"]*"/i', $html), 'homepage must limit Products to four');
@@ -835,7 +832,7 @@ greenfarm_test(
             'homepage Farm Stories must lead into the seasonal product strip'
         );
         greenfarm_expect(1 === substr_count($html, '<h1'), 'optional sections must preserve the single Page H1');
-        greenfarm_expect($page_id === $post_before_proof, 'secondary queries must restore the homepage Page context');
+        greenfarm_expect($page_id === $post_before_cta, 'secondary queries must restore the homepage Page context');
 
         wp_delete_post($draft_product, true);
         wp_delete_post($draft_story, true);
@@ -866,13 +863,13 @@ greenfarm_test(
         update_option('page_for_posts', $blog_page_id);
 
         $page_id           = wp_insert_post(array('post_type' => 'page', 'post_title' => 'Editorial Home', 'post_status' => 'publish'));
-        $post_before_proof = 0;
-        $capture_context   = static function () use (&$post_before_proof): void {
-            $post_before_proof = get_the_ID();
+        $post_before_cta = 0;
+        $capture_context = static function () use (&$post_before_cta): void {
+            $post_before_cta = get_the_ID();
         };
-        add_action('get_template_part_template-parts/home/proof', $capture_context);
+        add_action('get_template_part_template-parts/home/cta', $capture_context);
         $html = greenfarm_render_template('front-page.php', greenfarm_front_page_query($page_id));
-        remove_action('get_template_part_template-parts/home/proof', $capture_context);
+        remove_action('get_template_part_template-parts/home/cta', $capture_context);
 
         greenfarm_expect(3 === preg_match_all('/<article[^>]+class="[^"]*\bpost-card\b[^"]*"/i', $html), 'homepage must render exactly three latest-article cards');
         greenfarm_expect(3 === substr_count($html, '<h3 class="post-card__title">'), 'homepage article cards must use H3 headings');
@@ -884,7 +881,7 @@ greenfarm_test(
         greenfarm_expect(str_contains($html, get_permalink($blog_page_id)), 'configured Blog link is missing');
         greenfarm_expect(str_contains($html, home_url('/contact/')), 'final Contact CTA is missing');
         greenfarm_expect(! str_contains($html, '<form'), 'homepage must not render a fake newsletter form');
-        greenfarm_expect($page_id === $post_before_proof, 'Latest Articles query must restore the homepage Page context');
+        greenfarm_expect($page_id === $post_before_cta, 'Latest Articles query must restore the homepage Page context');
     }
 );
 
