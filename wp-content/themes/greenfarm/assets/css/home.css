@@ -102,6 +102,8 @@
 }
 
 .home-hero__media {
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: var(--gf-radius);
     overflow: hidden;
 }
 
@@ -239,8 +241,11 @@
 .home-story-card__media,
 .home-latest .post-card__media {
     background: var(--gf-forest-soft);
+    border: 1px solid rgba(168, 214, 68, 0.38);
+    border-radius: calc(var(--gf-radius) - 0.375rem);
     display: block;
     overflow: hidden;
+    transition: border-color 220ms ease, transform 220ms ease;
 }
 
 .home-product-card__media img,
@@ -248,14 +253,27 @@
 .home-latest .post-card__image {
     aspect-ratio: 4 / 3;
     object-fit: cover;
-    transition: transform 300ms ease;
+    transition: transform 220ms ease;
     width: 100%;
 }
 
+.home-product-card:hover .home-product-card__media,
+.home-product-card:focus-within .home-product-card__media,
+.home-story-card:hover .home-story-card__media,
+.home-story-card:focus-within .home-story-card__media,
+.home-latest .post-card:hover .post-card__media,
+.home-latest .post-card:focus-within .post-card__media {
+    border-color: rgba(168, 214, 68, 0.72);
+    transform: translateY(-2px);
+}
+
 .home-product-card:hover img,
+.home-product-card:focus-within img,
 .home-story-card:hover img,
-.home-latest .post-card:hover img {
-    transform: scale(1.025);
+.home-story-card:focus-within img,
+.home-latest .post-card:hover img,
+.home-latest .post-card:focus-within img {
+    transform: scale(1.03);
 }
 
 .home-product-card__body,
@@ -541,7 +559,10 @@
 
     .home-product-card__media img,
     .home-story-card__media img,
-    .home-latest .post-card__image {
+    .home-latest .post-card__image,
+    .home-product-card__media,
+    .home-story-card__media,
+    .home-latest .post-card__media {
         transition: none;
     }
 }
