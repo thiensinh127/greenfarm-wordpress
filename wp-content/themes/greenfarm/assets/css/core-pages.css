@@ -50,17 +50,17 @@
 
 .core-page-eyebrow {
     color: var(--gf-leaf);
-    font-size: 0.75rem;
-    font-weight: 800;
-    letter-spacing: 0.12em;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
     margin: 0 0 0.75rem;
     text-transform: uppercase;
 }
 
 .core-page-hero h1 {
-    font-size: clamp(2.75rem, 12vw, 6.5rem);
-    letter-spacing: -0.06em;
-    line-height: 0.95;
+    font-size: clamp(2.75rem, 8vw, 4.75rem);
+    letter-spacing: -0.045em;
+    line-height: 1;
     margin: 0;
     max-width: 12ch;
     overflow-wrap: anywhere;
@@ -89,7 +89,7 @@
 }
 
 .core-page__content {
-    font-size: clamp(1rem, 1.8vw, 1.15rem);
+    font-size: clamp(1rem, 1.5vw, 1.125rem);
     max-width: var(--gf-reading);
     overflow-wrap: anywhere;
     padding-block: clamp(3.5rem, 8vw, 7rem);
@@ -104,9 +104,9 @@
 }
 
 .core-page__content h2 {
-    font-size: clamp(2rem, 6vw, 3.5rem);
-    letter-spacing: -0.04em;
-    line-height: 1.05;
+    font-size: clamp(1.85rem, 5vw, 3rem);
+    letter-spacing: -0.035em;
+    line-height: 1.1;
     margin-block: 1.75em 0.55em;
     text-wrap: balance;
 }

@@ -325,6 +325,16 @@ greenfarm_test(
             (bool) preg_match('/h1,[\s\S]*?h2,[\s\S]*?h3\s*\{[^}]*overflow-wrap:\s*anywhere;/s', $global_css),
             'global headings must wrap long words at narrow widths'
         );
+        greenfarm_expect(str_contains($global_css, '--gf-font-body: "Manrope"'), 'global typography must provide the readable body font');
+        greenfarm_expect(str_contains($global_css, '--gf-font-display: "DM Serif Display"'), 'global typography must provide the editorial display font');
+        greenfarm_expect(
+            (bool) preg_match('/h1,[\s\S]*?h2,[\s\S]*?h3\s*\{[^}]*font-family:\s*var\(--gf-font-display\);[^}]*font-weight:\s*400;/s', $global_css),
+            'global headings must use the lighter editorial display treatment'
+        );
+
+        $home_css = (string) file_get_contents(dirname(__DIR__) . '/assets/css/home.css');
+        greenfarm_expect(str_contains($home_css, 'font-size: clamp(3rem, 8vw, 4.75rem);'), 'homepage hero heading must retain the refined 76px maximum');
+        greenfarm_expect(str_contains($home_css, 'font-size: clamp(2.25rem, 5vw, 3.5rem);'), 'homepage section headings must retain the refined 56px maximum');
 
         $menu_id = wp_create_nav_menu('GreenFarm test navigation');
         wp_update_nav_menu_item(
@@ -567,9 +577,11 @@ greenfarm_test(
         $wp_the_query      = $query;
 
         wp_dequeue_style('greenfarm-home');
+        wp_dequeue_style('greenfarm-fonts');
         wp_dequeue_script('greenfarm-motion');
         greenfarm_enqueue_assets();
 
+        greenfarm_expect(wp_style_is('greenfarm-fonts', 'enqueued'), 'front page must enqueue the GreenFarm typography fonts');
         greenfarm_expect(wp_style_is('greenfarm-home', 'enqueued'), 'front page must enqueue home.css');
         greenfarm_expect(wp_script_is('greenfarm-motion', 'enqueued'), 'front page must enqueue shared reveal motion');
 

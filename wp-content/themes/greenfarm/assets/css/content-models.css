@@ -30,9 +30,9 @@
 .archive-hero h1,
 .product-header h1,
 .story-header h1 {
-    font-size: clamp(2.5rem, 11vw, 5.75rem);
-    letter-spacing: -0.055em;
-    line-height: 0.98;
+    font-size: clamp(2.75rem, 8vw, 4.5rem);
+    letter-spacing: -0.045em;
+    line-height: 1;
     margin: 0.25em 0;
     overflow-wrap: anywhere;
     text-wrap: balance;
@@ -48,9 +48,9 @@
 .eyebrow,
 .product-header__availability {
     color: var(--gf-leaf);
-    font-size: 0.75rem;
-    font-weight: 800;
-    letter-spacing: 0.12em;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
 }
 
@@ -157,8 +157,8 @@
 
 .product-card h2,
 .story-card h2 {
-    font-size: clamp(1.35rem, 3vw, 2rem);
-    line-height: 1.15;
+    font-size: clamp(1.45rem, 2.5vw, 1.75rem);
+    line-height: 1.12;
     margin: 0.55rem 0 0.75rem;
     text-wrap: balance;
 }

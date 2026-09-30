@@ -50,9 +50,16 @@ function greenfarm_enqueue_assets(): void
     $version = wp_get_theme()->get('Version');
 
     wp_enqueue_style(
+        'greenfarm-fonts',
+        'https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Manrope:wght@400;500;600;700&display=swap',
+        array(),
+        null
+    );
+
+    wp_enqueue_style(
         'greenfarm-style',
         get_stylesheet_uri(),
-        array(),
+        array('greenfarm-fonts'),
         $version
     );
 
