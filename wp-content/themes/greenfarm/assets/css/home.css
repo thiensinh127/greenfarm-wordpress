@@ -107,10 +107,51 @@
     overflow: hidden;
 }
 
+.home-hero__carousel {
+    aspect-ratio: 16 / 10;
+    overflow: hidden;
+    position: relative;
+}
+
+.home-hero__slide {
+    inset: 0;
+    opacity: 0;
+    position: absolute;
+    transition: opacity 500ms ease;
+}
+
+.home-hero__slide.is-active {
+    opacity: 1;
+}
+
 .home-hero__image {
     aspect-ratio: 16 / 10;
+    height: 100%;
     object-fit: cover;
     width: 100%;
+}
+
+.home-hero__carousel-controls {
+    bottom: 1rem;
+    display: flex;
+    gap: 0.5rem;
+    left: 1rem;
+    position: absolute;
+    z-index: 1;
+}
+
+.home-hero__carousel-control {
+    background: rgba(255, 255, 255, 0.62);
+    border: 0;
+    border-radius: 50%;
+    cursor: pointer;
+    height: 0.7rem;
+    padding: 0;
+    width: 0.7rem;
+}
+
+.home-hero__carousel-control[aria-current="true"] {
+    background: var(--gf-leaf);
 }
 
 .home-section {
@@ -506,6 +547,10 @@
         min-height: min(48rem, calc(100vh - 4.5rem));
     }
 
+    .home-hero--with-image .home-hero__carousel {
+        min-height: min(48rem, calc(100vh - 4.5rem));
+    }
+
     .home-hero__content,
     .home-hero__media {
         margin: 0;
@@ -563,6 +608,10 @@
     .home-product-card__media,
     .home-story-card__media,
     .home-latest .post-card__media {
+        transition: none;
+    }
+
+    .home-hero__slide {
         transition: none;
     }
 }

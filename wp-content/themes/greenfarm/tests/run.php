@@ -736,6 +736,30 @@ greenfarm_test(
 );
 
 greenfarm_test(
+    'front page hero renders editor-selected carousel images',
+    static function (): void {
+        $page_id = wp_insert_post(
+            array(
+                'post_type'   => 'page',
+                'post_title'  => 'GreenFarm carousel',
+                'post_status' => 'publish',
+            )
+        );
+        $first_image  = greenfarm_test_image('hero carousel first', $page_id);
+        $second_image = greenfarm_test_image('hero carousel second', $page_id);
+        update_post_meta($page_id, '_greenfarm_hero_slider_ids', array($first_image, $second_image));
+
+        $html = greenfarm_render_template('front-page.php', greenfarm_front_page_query($page_id));
+
+        greenfarm_expect(str_contains($html, 'class="home-hero__carousel"'), 'hero carousel container is missing');
+        greenfarm_expect(2 === preg_match_all('/class="[^"]*\\bhome-hero__slide\\b[^"]*"/', $html), 'hero must render every editor-selected slide');
+        greenfarm_expect(str_contains($html, 'fetchpriority="high"'), 'first carousel slide must load with high priority');
+        greenfarm_expect(str_contains($html, 'loading="lazy"'), 'non-initial carousel slides must defer loading');
+        greenfarm_expect(str_contains($html, 'aria-label="Choose hero image"'), 'hero carousel controls need an accessible label');
+    }
+);
+
+greenfarm_test(
     'front page does not manufacture unverified farm claims',
     static function (): void {
         $page_id = wp_insert_post(

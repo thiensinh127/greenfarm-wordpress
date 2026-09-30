@@ -72,6 +72,14 @@ function greenfarm_enqueue_assets(): void
             array('greenfarm-style'),
             $version
         );
+
+        wp_enqueue_script(
+            'greenfarm-hero-carousel',
+            get_template_directory_uri() . '/assets/js/hero-carousel.js',
+            array(),
+            $version,
+            array('strategy' => 'defer', 'in_footer' => true)
+        );
     }
 
     if (greenfarm_is_content_model_view()) {
@@ -119,6 +127,65 @@ function greenfarm_enqueue_assets(): void
     }
 }
 add_action('wp_enqueue_scripts', 'greenfarm_enqueue_assets');
+
+/** @return array<int, int> */
+function greenfarm_get_hero_slider_ids(int $page_id): array
+{
+    $value = get_post_meta($page_id, '_greenfarm_hero_slider_ids', true);
+    $ids   = is_array($value) ? $value : explode(',', (string) $value);
+
+    return array_values(array_filter(array_unique(array_map('absint', $ids)), 'wp_attachment_is_image'));
+}
+
+function greenfarm_add_hero_slider_meta_box(): void
+{
+    add_meta_box('greenfarm-hero-slider', __('Hero carousel images', 'greenfarm'), 'greenfarm_render_hero_slider_meta_box', 'page', 'side');
+}
+add_action('add_meta_boxes_page', 'greenfarm_add_hero_slider_meta_box');
+
+/** @param WP_Post $post Current Page. */
+function greenfarm_render_hero_slider_meta_box(WP_Post $post): void
+{
+    $ids = greenfarm_get_hero_slider_ids((int) $post->ID);
+    wp_nonce_field('greenfarm_save_hero_slider', 'greenfarm_hero_slider_nonce');
+    echo '<p>' . esc_html__('Choose images for the homepage hero. Drag to change their order.', 'greenfarm') . '</p>';
+    echo '<ul id="greenfarm-hero-slider-list">';
+    foreach ($ids as $id) {
+        printf('<li data-id="%1$d">%2$s <button type="button" class="button-link-delete" aria-label="%3$s">%4$s</button></li>', $id, wp_get_attachment_image($id, 'thumbnail'), esc_attr__('Remove image', 'greenfarm'), esc_html__('Remove', 'greenfarm'));
+    }
+    echo '</ul><input id="greenfarm-hero-slider-ids" name="greenfarm_hero_slider_ids" type="hidden" value="' . esc_attr(implode(',', $ids)) . '">';
+    echo '<button id="greenfarm-hero-slider-add" type="button" class="button">' . esc_html__('Add images', 'greenfarm') . '</button>';
+}
+
+function greenfarm_save_hero_slider(int $post_id): void
+{
+    if (! isset($_POST['greenfarm_hero_slider_nonce']) || ! wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['greenfarm_hero_slider_nonce'])), 'greenfarm_save_hero_slider') || (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) || ! current_user_can('edit_post', $post_id)) {
+        return;
+    }
+
+    $raw_ids = isset($_POST['greenfarm_hero_slider_ids']) ? (string) wp_unslash($_POST['greenfarm_hero_slider_ids']) : '';
+    $ids     = array_values(array_filter(array_unique(array_map('absint', explode(',', $raw_ids))), 'wp_attachment_is_image'));
+
+    if ($ids) {
+        update_post_meta($post_id, '_greenfarm_hero_slider_ids', $ids);
+    } else {
+        delete_post_meta($post_id, '_greenfarm_hero_slider_ids');
+    }
+}
+add_action('save_post_page', 'greenfarm_save_hero_slider');
+
+/** @param string $hook Admin page hook. */
+function greenfarm_enqueue_hero_slider_admin_assets(string $hook): void
+{
+    $screen = get_current_screen();
+    if (! in_array($hook, array('post.php', 'post-new.php'), true) || ! $screen || 'page' !== $screen->post_type) {
+        return;
+    }
+
+    wp_enqueue_media();
+    wp_enqueue_script('greenfarm-hero-slider-admin', get_template_directory_uri() . '/assets/js/hero-slider-admin.js', array('jquery', 'jquery-ui-sortable'), wp_get_theme()->get('Version'), true);
+}
+add_action('admin_enqueue_scripts', 'greenfarm_enqueue_hero_slider_admin_assets');
 
 /**
  * Determine whether the current request uses the editorial blog system.
