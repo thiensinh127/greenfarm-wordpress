@@ -387,13 +387,13 @@ greenfarm_content_test(
         $draft_story_id = wp_insert_post(array('post_type' => 'farm_story', 'post_title' => 'Integrated Draft Story', 'post_status' => 'draft'));
 
         $page_id           = wp_insert_post(array('post_type' => 'page', 'post_title' => 'Integrated Homepage', 'post_status' => 'publish'));
-        $post_before_proof = 0;
-        $capture_context   = static function () use (&$post_before_proof): void {
-            $post_before_proof = get_the_ID();
+        $post_before_cta = 0;
+        $capture_context = static function () use (&$post_before_cta): void {
+            $post_before_cta = get_the_ID();
         };
-        add_action('get_template_part_template-parts/home/proof', $capture_context);
+        add_action('get_template_part_template-parts/home/cta', $capture_context);
         $html = greenfarm_content_render_template('front-page.php', greenfarm_content_front_page_query($page_id));
-        remove_action('get_template_part_template-parts/home/proof', $capture_context);
+        remove_action('get_template_part_template-parts/home/cta', $capture_context);
 
         greenfarm_content_expect(4 === preg_match_all('/<article[^>]+class="[^"]*\bhome-product-card\b[^"]*"/i', $html), 'Homepage must limit Products to four shared cards');
         greenfarm_content_expect(2 === preg_match_all('/<article[^>]+class="[^"]*\bhome-story-card\b[^"]*"/i', $html), 'Homepage must limit Stories to two shared cards');
@@ -403,7 +403,7 @@ greenfarm_content_test(
         greenfarm_content_expect(! str_contains($html, 'Integrated Product 1'), 'oldest Product must be outside the Homepage limit');
         greenfarm_content_expect(! str_contains($html, 'Integrated Story 1'), 'oldest Story must be outside the Homepage limit');
         greenfarm_content_expect(! str_contains($html, 'Integrated Draft'), 'draft business content must not render');
-        greenfarm_content_expect($page_id === $post_before_proof, 'Homepage Page context was not restored');
+        greenfarm_content_expect($page_id === $post_before_cta, 'Homepage Page context was not restored');
 
         foreach (array_merge($products, $story_ids, array($draft_product_id, $draft_story_id, $page_id)) as $post_id) {
             wp_delete_post($post_id, true);
