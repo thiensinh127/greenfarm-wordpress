@@ -13,7 +13,7 @@
     border-radius: 0 0 1.5rem 1.5rem;
     color: #fff;
     margin-inline: -1rem;
-    padding: clamp(3rem, 9vw, 7rem) 1rem;
+    padding: clamp(2rem, 5vw, 4.5rem) 1rem;
 }
 
 .archive-hero > *,
@@ -30,9 +30,9 @@
 .archive-hero h1,
 .product-header h1,
 .story-header h1 {
-    font-size: clamp(2.5rem, 11vw, 5.75rem);
-    letter-spacing: -0.055em;
-    line-height: 0.98;
+    font-size: clamp(2.75rem, 8vw, 4.5rem);
+    letter-spacing: -0.045em;
+    line-height: 1;
     margin: 0.25em 0;
     overflow-wrap: anywhere;
     text-wrap: balance;
@@ -48,9 +48,9 @@
 .eyebrow,
 .product-header__availability {
     color: var(--gf-leaf);
-    font-size: 0.75rem;
-    font-weight: 800;
-    letter-spacing: 0.12em;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
 }
 
@@ -60,12 +60,18 @@
 }
 
 .breadcrumbs ol {
+    align-items: center;
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
     list-style: none;
     margin: 0;
     padding: 0;
+}
+
+.breadcrumbs li {
+    align-items: center;
+    display: inline-flex;
 }
 
 .breadcrumbs li:not(:last-child)::after {
@@ -106,21 +112,34 @@
 .product-card__media,
 .story-card__media {
     background: var(--gf-forest-soft);
+    border: 1px solid rgba(168, 214, 68, 0.38);
+    border-radius: calc(var(--gf-radius) - 0.375rem);
     display: block;
     overflow: hidden;
+    transition: border-color 220ms ease, transform 220ms ease;
 }
 
 .product-card__media img,
 .story-card__media img {
     aspect-ratio: 4 / 3;
     object-fit: cover;
-    transition: transform 350ms ease;
+    transition: transform 220ms ease;
     width: 100%;
 }
 
-.product-card:hover img,
-.story-card:hover img {
-    transform: scale(1.025);
+.product-card:hover .product-card__media,
+.product-card:focus-within .product-card__media,
+.story-card:hover .story-card__media,
+.story-card:focus-within .story-card__media {
+    border-color: rgba(168, 214, 68, 0.72);
+    transform: translateY(-2px);
+}
+
+.product-card:hover .product-card__media img,
+.product-card:focus-within .product-card__media img,
+.story-card:hover .story-card__media img,
+.story-card:focus-within .story-card__media img {
+    transform: scale(1.03);
 }
 
 .product-card__body,
@@ -144,8 +163,8 @@
 
 .product-card h2,
 .story-card h2 {
-    font-size: clamp(1.35rem, 3vw, 2rem);
-    line-height: 1.15;
+    font-size: clamp(1.45rem, 2.5vw, 1.75rem);
+    line-height: 1.12;
     margin: 0.55rem 0 0.75rem;
     text-wrap: balance;
 }
@@ -284,6 +303,7 @@
 .product-detail__featured-image img,
 .story__featured-image img {
     aspect-ratio: 16 / 9;
+    border: 1px solid rgba(168, 214, 68, 0.38);
     border-radius: var(--gf-radius);
     object-fit: cover;
     width: 100%;
@@ -375,7 +395,8 @@
 
 .product-gallery__item img {
     aspect-ratio: 4 / 3;
-    border-radius: var(--gf-radius);
+    border: 1px solid rgba(168, 214, 68, 0.38);
+    border-radius: calc(var(--gf-radius) - 0.375rem);
     object-fit: cover;
     width: 100%;
 }
@@ -386,24 +407,24 @@
     padding-top: 0.6rem;
 }
 
-.has-reveal-motion [data-reveal] {
+[data-reveal].will-reveal {
     opacity: 0;
     transform: translateY(1rem);
     transition: opacity 500ms ease, transform 500ms ease;
 }
 
-.has-reveal-motion [data-reveal].is-visible {
+[data-reveal].will-reveal.is-visible {
     opacity: 1;
     transform: none;
 }
 
-.has-reveal-motion [data-reveal] [data-reveal-child] {
+[data-reveal].will-reveal [data-reveal-child] {
     opacity: 0;
     transform: translateY(0.75rem);
     transition: opacity 500ms ease var(--reveal-delay, 0ms), transform 500ms ease var(--reveal-delay, 0ms);
 }
 
-.has-reveal-motion [data-reveal].is-visible [data-reveal-child] {
+[data-reveal].will-reveal.is-visible [data-reveal-child] {
     opacity: 1;
     transform: none;
 }
@@ -469,10 +490,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .has-reveal-motion [data-reveal],
-    .has-reveal-motion [data-reveal] [data-reveal-child],
+    [data-reveal].will-reveal,
+    [data-reveal].will-reveal [data-reveal-child],
     .product-card__media img,
-    .story-card__media img {
+    .story-card__media img,
+    .product-card__media,
+    .story-card__media {
         opacity: 1;
         transform: none;
         transition: none;

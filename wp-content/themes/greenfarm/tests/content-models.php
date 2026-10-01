@@ -348,8 +348,40 @@ greenfarm_content_test(
             'breadcrumb and Product Category links need an effective 44px target'
         );
         greenfarm_content_expect(
+            (bool) preg_match('/\.breadcrumbs ol\s*\{[^}]*align-items:\s*center;[\s\S]*?\.breadcrumbs li\s*\{[^}]*align-items:\s*center;[^}]*display:\s*inline-flex;/s', $css),
+            'breadcrumb links and current-page text must share one vertical alignment'
+        );
+        greenfarm_content_expect(
             (bool) preg_match('/\.product-card h2 a,[\s\S]*?\.story-card h2 a\s*\{[^}]*display:\s*inline-flex;[^}]*min-height:\s*2\.75rem;/s', $css),
             'card title links need an effective 44px target'
+        );
+        greenfarm_content_expect(
+            (bool) preg_match('/\.archive-hero,[\s\S]*?\.story-header\s*\{[^}]*padding:\s*clamp\(2rem,\s*5vw,\s*4\.5rem\)\s+1rem;/s', $css),
+            'archive breadcrumb hero must use compact spacing on large screens'
+        );
+    }
+);
+
+greenfarm_content_test(
+    'image media uses rounded borders, keyboard-safe hover polish, and reduced motion fallbacks',
+    static function (): void {
+        $content_css = (string) file_get_contents(dirname(__DIR__) . '/assets/css/content-models.css');
+        $blog_css    = (string) file_get_contents(dirname(__DIR__) . '/assets/css/blog.css');
+        $home_css    = (string) file_get_contents(dirname(__DIR__) . '/assets/css/home.css');
+        $core_css    = (string) file_get_contents(dirname(__DIR__) . '/assets/css/core-pages.css');
+
+        greenfarm_content_expect(str_contains($content_css, '.product-card:focus-within .product-card__media'), 'Product media needs a keyboard-visible hover state');
+        greenfarm_content_expect(str_contains($blog_css, '.post-card:focus-within .post-card__media'), 'Journal media needs a keyboard-visible hover state');
+        greenfarm_content_expect(str_contains($home_css, '.home-hero__media') && str_contains($home_css, 'border-radius: var(--gf-radius);'), 'Homepage hero needs a modern rounded image frame');
+        greenfarm_content_expect(
+            (bool) preg_match('/\.core-page-hero__media\s*\{[^}]*border-radius:\s*var\(--gf-radius\);/s', $core_css),
+            'Core page hero needs the shared 20px media radius'
+        );
+        greenfarm_content_expect(! str_contains($home_css, '.home-hero__media:hover') && ! str_contains($core_css, '.core-page-hero__media:hover'), 'Standalone hero images must not animate without a keyboard equivalent');
+        greenfarm_content_expect(! str_contains($content_css, '.product-gallery__item:hover img'), 'Standalone gallery images must not animate without a keyboard equivalent');
+        greenfarm_content_expect(
+            (bool) preg_match('/\.product-gallery__item img\s*\{[^}]*border:\s*1px solid rgba\(168, 214, 68, 0\.38\);[^}]*border-radius:\s*calc\(var\(--gf-radius\) - 0\.375rem\);/s', $content_css),
+            'Product gallery needs the bordered 14px image treatment'
         );
     }
 );

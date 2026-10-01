@@ -306,6 +306,10 @@ greenfarm_test(
 
         $html = greenfarm_render_header();
 
+        greenfarm_expect(str_contains($html, 'class="site-brand__mark"'), 'header must render the GreenFarm brand mark');
+        greenfarm_expect(str_contains($html, 'class="site-header__menu-toggle"'), 'header must provide a mobile menu toggle');
+        greenfarm_expect(str_contains($html, 'aria-controls="primary-navigation"'), 'mobile menu toggle must identify the controlled navigation');
+        greenfarm_expect(str_contains($html, 'id="primary-navigation"'), 'primary navigation must have a stable mobile-menu target');
         greenfarm_expect(str_contains($html, 'href="' . home_url('/products/') . '"'), 'fallback navigation must link to Products');
         greenfarm_expect(str_contains($html, 'href="' . home_url('/farm-stories/') . '"'), 'fallback navigation must link to Farm Stories');
         greenfarm_expect(str_contains($html, 'href="' . home_url('/about/') . '"'), 'fallback navigation must link to About');
@@ -325,6 +329,16 @@ greenfarm_test(
             (bool) preg_match('/h1,[\s\S]*?h2,[\s\S]*?h3\s*\{[^}]*overflow-wrap:\s*anywhere;/s', $global_css),
             'global headings must wrap long words at narrow widths'
         );
+        greenfarm_expect(str_contains($global_css, '--gf-font-body: "Manrope"'), 'global typography must provide the readable body font');
+        greenfarm_expect(str_contains($global_css, '--gf-font-display: "DM Serif Display"'), 'global typography must provide the editorial display font');
+        greenfarm_expect(
+            (bool) preg_match('/h1,[\s\S]*?h2,[\s\S]*?h3\s*\{[^}]*font-family:\s*var\(--gf-font-display\);[^}]*font-weight:\s*400;/s', $global_css),
+            'global headings must use the lighter editorial display treatment'
+        );
+
+        $home_css = (string) file_get_contents(dirname(__DIR__) . '/assets/css/home.css');
+        greenfarm_expect(str_contains($home_css, 'font-size: clamp(3.25rem, 7vw, 5.5rem);'), 'homepage hero heading must retain the refined 88px maximum');
+        greenfarm_expect(str_contains($home_css, 'font-size: clamp(2.25rem, 5vw, 3.5rem);'), 'homepage section headings must retain the refined 56px maximum');
 
         $menu_id = wp_create_nav_menu('GreenFarm test navigation');
         wp_update_nav_menu_item(
@@ -567,9 +581,11 @@ greenfarm_test(
         $wp_the_query      = $query;
 
         wp_dequeue_style('greenfarm-home');
+        wp_dequeue_style('greenfarm-fonts');
         wp_dequeue_script('greenfarm-motion');
         greenfarm_enqueue_assets();
 
+        greenfarm_expect(wp_style_is('greenfarm-fonts', 'enqueued'), 'front page must enqueue the GreenFarm typography fonts');
         greenfarm_expect(wp_style_is('greenfarm-home', 'enqueued'), 'front page must enqueue home.css');
         greenfarm_expect(wp_script_is('greenfarm-motion', 'enqueued'), 'front page must enqueue shared reveal motion');
 
@@ -665,15 +681,18 @@ greenfarm_test(
                 'post_status'  => 'publish',
             )
         );
+        set_post_thumbnail($page_id, greenfarm_test_image('homepage-introduction', $page_id));
         $html = greenfarm_render_template('front-page.php', greenfarm_front_page_query($page_id));
 
         greenfarm_expect(1 === substr_count($html, '<h1'), 'front page must render exactly one H1');
         greenfarm_expect(str_contains($html, 'Food grown with care'), 'Page title is missing from the hero');
         greenfarm_expect(str_contains($html, 'Seasonal produce from healthy soil.'), 'Page excerpt is missing from the hero');
         greenfarm_expect(str_contains($html, 'Meet the people and practices behind every harvest.'), 'Page content is missing from the introduction');
+        greenfarm_expect(str_contains($html, 'home-introduction__media'), 'introduction must pair its story with the editor-selected farm image');
         greenfarm_expect(str_contains($html, 'A farm rooted in care'), 'approved introduction heading is missing');
         greenfarm_expect(str_contains($html, 'Responsible methods'), 'approved farm proof points are missing');
         greenfarm_expect(str_contains($html, home_url('/farm-stories/')), 'Farm Stories CTA is missing');
+        greenfarm_expect(str_contains($html, home_url('/products/')), 'Products CTA is missing');
         greenfarm_expect(str_contains($html, home_url('/about/')), 'About CTA is missing');
         greenfarm_expect(! preg_match('/<img[^>]+src=(?:""|\'\')/i', $html), 'front page must not output an image with an empty source');
     }
@@ -736,6 +755,32 @@ greenfarm_test(
 );
 
 greenfarm_test(
+    'front page hero renders editor-selected carousel images',
+    static function (): void {
+        $page_id = wp_insert_post(
+            array(
+                'post_type'   => 'page',
+                'post_title'  => 'GreenFarm carousel',
+                'post_status' => 'publish',
+            )
+        );
+        $first_image  = greenfarm_test_image('hero carousel first', $page_id);
+        $second_image = greenfarm_test_image('hero carousel second', $page_id);
+        update_post_meta($page_id, '_greenfarm_hero_slider_ids', array($first_image, $second_image));
+
+        $html = greenfarm_render_template('front-page.php', greenfarm_front_page_query($page_id));
+
+        greenfarm_expect(str_contains($html, 'class="home-hero__carousel"'), 'hero carousel container is missing');
+        greenfarm_expect(2 === preg_match_all('/class="[^"]*\\bhome-hero__slide\\b[^"]*"/', $html), 'hero must render every editor-selected slide');
+        greenfarm_expect(str_contains($html, 'fetchpriority="high"'), 'first carousel slide must load with high priority');
+        greenfarm_expect(str_contains($html, 'loading="lazy"'), 'non-initial carousel slides must defer loading');
+        greenfarm_expect(str_contains($html, 'aria-label="Choose hero image"'), 'hero carousel controls need an accessible label');
+        greenfarm_expect(str_contains($html, 'class="home-hero__carousel-toggle"'), 'hero carousel needs a persistent pause control');
+        greenfarm_expect(str_contains($html, 'aria-label="Pause carousel"'), 'hero carousel pause control needs an accessible label');
+    }
+);
+
+greenfarm_test(
     'front page does not manufacture unverified farm claims',
     static function (): void {
         $page_id = wp_insert_post(
@@ -788,6 +833,7 @@ greenfarm_test(
                 )
             );
             wp_set_object_terms($product_ids[$index - 1], array($term_ids[$index - 1]), 'product_category');
+            set_post_thumbnail($product_ids[$index - 1], greenfarm_test_image(sprintf('homepage-category-%d', $index), $product_ids[$index - 1]));
         }
         update_post_meta($product_ids[4], 'greenfarm_availability', 'available');
         $draft_product = wp_insert_post(array('post_type' => 'greenfarm_product', 'post_title' => 'Homepage Draft Product', 'post_status' => 'draft'));
@@ -816,6 +862,7 @@ greenfarm_test(
         remove_action('get_template_part_template-parts/home/cta', $capture_page_context);
 
         greenfarm_expect(4 === substr_count($html, 'class="home-category-card"'), 'homepage must limit Product categories to four');
+        greenfarm_expect(4 === substr_count($html, 'class="home-category-card__media"'), 'homepage categories must use their latest product image');
         greenfarm_expect(4 === preg_match_all('/<article[^>]+class="[^"]*\bhome-product-card\b[^"]*"/i', $html), 'homepage must limit Products to four');
         greenfarm_expect(2 === preg_match_all('/<article[^>]+class="[^"]*\bhome-story-card\b[^"]*"/i', $html), 'homepage must limit Farm Stories to two');
         greenfarm_expect(! str_contains($html, 'Homepage Product 1'), 'oldest Product must be outside the four-card limit');

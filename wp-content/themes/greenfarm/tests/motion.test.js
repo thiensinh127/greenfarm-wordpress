@@ -22,19 +22,20 @@ function styles() {
     };
 }
 
-function section(children = []) {
+function section(children = [], top = 0) {
     return {
         classList: classes(),
+        getBoundingClientRect: () => ({ top }),
         querySelectorAll: () => children
     };
 }
 
-test('reveals intersecting sections once and stops observing them', () => {
+test('reveals only sections below the initial viewport without hiding a newly rendered page', () => {
     assert.equal(fs.existsSync(motionPath), true, 'motion.js must exist');
 
     const source = fs.readFileSync(motionPath, 'utf8');
     const first = section();
-    const second = section();
+    const second = section([], 1000);
     const root = { classList: classes() };
     const observed = [];
     const unobserved = [];
@@ -57,21 +58,22 @@ test('reveals intersecting sections once and stops observing them', () => {
             documentElement: root,
             querySelectorAll: () => [first, second]
         },
-        window: { matchMedia: () => ({ matches: false }) },
+        window: { innerHeight: 800, matchMedia: () => ({ matches: false }) },
         IntersectionObserver
     });
 
-    assert.equal(root.classList.contains('has-reveal-motion'), true);
-    assert.deepEqual(observed, [first, second]);
+    assert.equal(root.classList.contains('has-reveal-motion'), false);
+    assert.deepEqual(observed, [second]);
+    assert.equal(first.classList.contains('will-reveal'), false);
+    assert.equal(second.classList.contains('will-reveal'), true);
 
     callback([
-        { isIntersecting: true, target: first },
-        { isIntersecting: false, target: second }
+        { isIntersecting: true, target: second }
     ]);
 
-    assert.equal(first.classList.contains('is-visible'), true);
-    assert.equal(second.classList.contains('is-visible'), false);
-    assert.deepEqual(unobserved, [first]);
+    assert.equal(first.classList.contains('is-visible'), false);
+    assert.equal(second.classList.contains('is-visible'), true);
+    assert.deepEqual(unobserved, [second]);
 });
 
 test('reduced motion shows every section without creating an observer', () => {
