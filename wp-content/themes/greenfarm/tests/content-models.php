@@ -348,8 +348,16 @@ greenfarm_content_test(
             'breadcrumb and Product Category links need an effective 44px target'
         );
         greenfarm_content_expect(
+            (bool) preg_match('/\.breadcrumbs ol\s*\{[^}]*align-items:\s*center;[\s\S]*?\.breadcrumbs li\s*\{[^}]*align-items:\s*center;[^}]*display:\s*inline-flex;/s', $css),
+            'breadcrumb links and current-page text must share one vertical alignment'
+        );
+        greenfarm_content_expect(
             (bool) preg_match('/\.product-card h2 a,[\s\S]*?\.story-card h2 a\s*\{[^}]*display:\s*inline-flex;[^}]*min-height:\s*2\.75rem;/s', $css),
             'card title links need an effective 44px target'
+        );
+        greenfarm_content_expect(
+            (bool) preg_match('/\.archive-hero,[\s\S]*?\.story-header\s*\{[^}]*padding:\s*clamp\(2rem,\s*5vw,\s*4\.5rem\)\s+1rem;/s', $css),
+            'archive breadcrumb hero must use compact spacing on large screens'
         );
     }
 );

@@ -38,8 +38,12 @@
         threshold: 0.12
     });
 
-    document.documentElement.classList.add('has-reveal-motion');
     sections.forEach(function (section) {
+        if (section.getBoundingClientRect().top <= window.innerHeight * 0.9) {
+            return;
+        }
+
+        section.classList.add('will-reveal');
         observer.observe(section);
     });
 }());

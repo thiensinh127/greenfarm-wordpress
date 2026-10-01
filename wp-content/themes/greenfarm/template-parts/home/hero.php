@@ -23,9 +23,12 @@ if (! $greenfarm_images && get_post_thumbnail_id()) {
             );
             ?>
         </p>
-        <div class="home-actions">
+        <div class="home-actions home-hero__actions">
             <a class="home-button home-button--primary" href="<?php echo esc_url(home_url('/farm-stories/')); ?>">
                 <?php esc_html_e('Read the latest from the fields', 'greenfarm'); ?>
+            </a>
+            <a class="home-button home-button--secondary" href="<?php echo esc_url(home_url('/products/')); ?>">
+                <?php esc_html_e('Explore products', 'greenfarm'); ?>
             </a>
         </div>
     </div>
@@ -40,6 +43,9 @@ if (! $greenfarm_images && get_post_thumbnail_id()) {
                 <?php endforeach; ?>
                 <?php if (count($greenfarm_images) > 1) : ?>
                     <div class="home-hero__carousel-controls" role="group" aria-label="<?php esc_attr_e('Choose hero image', 'greenfarm'); ?>">
+                        <button class="home-hero__carousel-toggle" type="button" aria-label="<?php esc_attr_e('Pause carousel', 'greenfarm'); ?>" aria-pressed="false">
+                            <span class="screen-reader-text"><?php esc_html_e('Pause carousel', 'greenfarm'); ?></span>
+                        </button>
                         <?php foreach ($greenfarm_images as $greenfarm_index => $greenfarm_image) : ?>
                             <button class="home-hero__carousel-control" type="button" data-index="<?php echo esc_attr((string) $greenfarm_index); ?>" aria-current="<?php echo 0 === $greenfarm_index ? 'true' : 'false'; ?>"><span class="screen-reader-text"><?php echo esc_html(sprintf(__('Show hero image %d', 'greenfarm'), $greenfarm_index + 1)); ?></span></button>
                         <?php endforeach; ?>

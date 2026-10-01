@@ -63,6 +63,14 @@ function greenfarm_enqueue_assets(): void
         $version
     );
 
+    wp_enqueue_script(
+        'greenfarm-header-navigation',
+        get_template_directory_uri() . '/assets/js/header-navigation.js',
+        array(),
+        $version,
+        array('strategy' => 'defer', 'in_footer' => true)
+    );
+
     if (greenfarm_is_blog_view()) {
         wp_enqueue_style(
             'greenfarm-blog',
